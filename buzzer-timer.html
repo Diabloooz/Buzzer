@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buzzer Timer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111;
+    --accent: #e8ff00;
+    --accent2: #ff4d00;
+    --text: #f0f0f0;
+    --muted: #444;
+    --border: #ff69b4;
+    --ready: #00bfff;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  /* ── TOP HALF ── */
+  #top {
+    flex: 1;
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    position: relative;
+  }
+
+  .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    position: relative;
+  }
+
+  .panel:first-child {
+    border-right: 2px solid var(--border);
+    background: radial-gradient(ellipse at center, #141400 0%, var(--bg) 70%);
+  }
+  .panel:last-child {
+    background: radial-gradient(ellipse at center, #0d0d0d 0%, var(--bg) 70%);
+  }
+
+  .panel-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(12px, 2vw, 16px);
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    position: absolute;
+    top: 16px;
+  }
+
+  .big-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 18vw, 160px);
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(232,255,0,0.3);
+    transition: color 0.3s, text-shadow 0.3s;
+    letter-spacing: 2px;
+    min-width: 3ch;
+    text-align: center;
+  }
+
+  .big-number.occur {
+    color: var(--text);
+    text-shadow: none;
+  }
+
+  .big-number.dimmed {
+    color: var(--muted);
+    text-shadow: none;
+  }
+
+  .big-number.flash {
+    animation: flash-anim 0.4s ease-out;
+  }
+
+  @keyframes flash-anim {
+    0%   { color: #fff; text-shadow: 0 0 60px #fff; }
+    100% { color: var(--accent); text-shadow: 0 0 30px rgba(232,255,0,0.3); }
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .adj-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--muted);
+    background: transparent;
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    line-height: 1;
+    padding-bottom: 2px;
+  }
+  .adj-btn:hover  { border-color: var(--accent); color: var(--accent); }
+  .adj-btn:active { transform: scale(0.9); }
+  .adj-btn:disabled { opacity: 0.2; cursor: default; }
+
+  /* status bar — full top-half overlay */
+  #status-bar {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 14vw, 120px);
+    letter-spacing: 8px;
+    color: var(--ready);
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    z-index: 20;
+    pointer-events: none;
+    text-shadow: 0 0 40px rgba(0,191,255,0.6);
+  }
+  #status-bar.visible { opacity: 1; }
+
+  /* progress bar */
+  #progress-wrap {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--border);
+  }
+  #progress-bar {
+    height: 100%;
+    width: 100%;
+    background: var(--accent);
+    transform-origin: left;
+    transition: background 0.3s;
+  }
+
+  /* ── BOTTOM HALF ── */
+  #bottom {
+    height: 42%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #0d0d0d;
+    position: relative;
+  }
+
+  #main-btn {
+    width: min(320px, 80vw);
+    height: 80px;
+    border-radius: 16px;
+    border: 3px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    letter-spacing: 6px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 0 20px rgba(232,255,0,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  #main-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #main-btn:hover { box-shadow: 0 0 40px rgba(232,255,0,0.35); }
+  #main-btn:hover::after { opacity: 0.08; }
+  #main-btn:active { transform: scale(0.97); }
+
+  #main-btn.paused {
+    border-color: var(--ready);
+    color: var(--ready);
+    box-shadow: 0 0 20px rgba(0,191,255,0.2);
+  }
+  #main-btn.paused::after { background: var(--ready); }
+
+  #reset-btn {
+    background: transparent;
+    border: 1px solid var(--muted);
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 3px;
+    padding: 8px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #reset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  #footnote {
+    position: fixed;
+    bottom: 6px;
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #333;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #footnote span { color: #ff69b4; }
+
+  /* round dots */
+  #round-dots {
+    display: flex;
+    gap: 8px;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .dot.done { background: var(--accent2); transform: scale(1.2); }
+  .dot.active { background: var(--accent); transform: scale(1.3); }
+</style>
+</head>
+<body>
+
+<div id="top">
+  <!-- Seconds Panel -->
+  <div class="panel" id="sec-panel">
+    <span class="panel-label">Seconds</span>
+    <div class="big-number" id="sec-display">30</div>
+    <div class="controls">
+      <button class="adj-btn" id="sec-minus">−</button>
+      <button class="adj-btn" id="sec-plus">+</button>
+    </div>
+  </div>
+
+  <!-- Occurrence Panel -->
+  <div class="panel" id="occ-panel">
+    <span class="panel-label">Rounds</span>
+    <div class="big-number occur" id="occ-display">3</div>
+    <div class="controls">
+      <button class="adj-btn" id="occ-minus">−</button>
+      <button class="adj-btn" id="occ-plus">+</button>
+    </div>
+  </div>
+
+  <!-- Status overlay -->
+  <div id="status-bar">GET READY...</div>
+
+  <!-- Progress bar -->
+  <div id="progress-wrap">
+    <div id="progress-bar"></div>
+  </div>
+</div>
+
+<div id="bottom">
+  <div id="round-dots"></div>
+  <button id="main-btn">START</button>
+  <button id="reset-btn">RESET</button>
+</div>
+
+<div id="footnote">made with <span>♥</span> for Roshy</div>
+
+<script>
+  // ── State ──
+  const DEFAULT_SEC = 30;
+  const DEFAULT_OCC = 3;
+
+  let userSec = DEFAULT_SEC;
+  let userOcc = DEFAULT_OCC;
+
+  let state = 'idle'; // idle | running | paused | get-ready | done
+  let currentSec = DEFAULT_SEC;
+  let currentOcc = DEFAULT_OCC;
+  let roundsDone = 0;
+  let tickInterval = null;
+  let getReadyTimeout = null;
+
+  // ── Elements ──
+  const secDisplay = document.getElementById('sec-display');
+  const occDisplay = document.getElementById('occ-display');
+  const mainBtn    = document.getElementById('main-btn');
+  const resetBtn   = document.getElementById('reset-btn');
+  const statusBar  = document.getElementById('status-bar');
+  const progressBar = document.getElementById('progress-bar');
+  const dotsWrap   = document.getElementById('round-dots');
+
+  // ── Audio ──
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+  }
+
+  function beep(duration = 0.3, freq = 880, type = 'sine', vol = 0.6) {
+    ensureAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function beepShort() { beep(0.25, 880, 'sine', 0.5); }
+  function beepLong()  {
+    beep(0.4, 880, 'sine', 0.6);
+    setTimeout(() => beep(0.4, 1100, 'sine', 0.5), 350);
+    setTimeout(() => beep(0.6, 1320, 'sine', 0.4), 700);
+  }
+
+  // ── Dots ──
+  function buildDots(total) {
+    dotsWrap.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot';
+      dotsWrap.appendChild(d);
+    }
+  }
+
+  function updateDots() {
+    const dots = dotsWrap.querySelectorAll('.dot');
+    dots.forEach((d, i) => {
+      d.className = 'dot';
+      if (i < roundsDone) d.classList.add('done');
+      else if (i === roundsDone) d.classList.add('active');
+    });
+  }
+
+  // ── Progress bar ──
+  function setProgress(ratio) {
+    progressBar.style.transform = `scaleX(${ratio})`;
+  }
+
+  // ── Display helpers ──
+  function showSec(val) {
+    secDisplay.textContent = val;
+  }
+
+  function showOcc(val) {
+    occDisplay.textContent = val;
+  }
+
+  function flashSec() {
+    secDisplay.classList.remove('flash');
+    void secDisplay.offsetWidth;
+    secDisplay.classList.add('flash');
+    setTimeout(() => secDisplay.classList.remove('flash'), 400);
+  }
+
+  // ── Adj buttons ──
+  document.getElementById('sec-minus').addEventListener('click', () => {
+    if (state !== 'idle') return;
+    if (userSec > 1) { userSec--; showSec(userSec); }
+  });
+  document.getElementById('sec-plus').addEventListener('click', () => {
+    if (state !== 'idle') return;
+    if (userSec < 99) { userSec++; showSec(userSec); }
+  });
+  document.getElementById('occ-minus').addEventListener('click', () => {
+    if (state !== 'idle') return;
+    if (userOcc > 1) { userOcc--; showOcc(userOcc); buildDots(userOcc); }
+  });
+  document.getElementById('occ-plus').addEventListener('click', () => {
+    if (state !== 'idle') return;
+    if (userOcc < 20) { userOcc++; showOcc(userOcc); buildDots(userOcc); }
+  });
+
+  function setAdjEnabled(en) {
+    ['sec-minus','sec-plus','occ-minus','occ-plus'].forEach(id => {
+      document.getElementById(id).disabled = !en;
+    });
+  }
+
+  // ── Timer core ──
+  function startCountdown() {
+    state = 'running';
+    mainBtn.textContent = 'PAUSE';
+    mainBtn.classList.remove('paused');
+    statusBar.classList.remove('visible');
+
+    tickInterval = setInterval(() => {
+      currentSec--;
+      showSec(currentSec);
+      setProgress(currentSec / userSec);
+
+      if (currentSec <= 0) {
+        clearInterval(tickInterval);
+        tickInterval = null;
+        onRoundEnd();
+      }
+    }, 1000);
+  }
+
+  function onRoundEnd() {
+    roundsDone++;
+    updateDots();
+    const isFinal = roundsDone >= userOcc;
+
+    if (isFinal) {
+      beepLong();
+      state = 'done';
+      mainBtn.textContent = 'START';
+      mainBtn.classList.remove('paused');
+      setProgress(0);
+      showSec(userSec);
+      showOcc(userOcc);
+      setAdjEnabled(true);
+      statusBar.textContent = 'DONE!';
+      statusBar.style.color = '#ff4d00';
+      statusBar.style.textShadow = '0 0 40px rgba(255,77,0,0.6)';
+      statusBar.classList.add('visible');
+      setTimeout(() => {
+        statusBar.classList.remove('visible');
+        statusBar.style.color = 'var(--ready)';
+        statusBar.style.textShadow = '0 0 40px rgba(0,191,255,0.6)';
+        state = 'idle';
+        buildDots(userOcc);
+      }, 2000);
+    } else {
+      beepShort();
+      startGetReady();
+    }
+  }
+
+  function startGetReady() {
+    state = 'get-ready';
+    currentSec = userSec;
+    showSec(userSec);
+    setProgress(1);
+    statusBar.textContent = 'GET READY...';
+    statusBar.style.color = 'var(--ready)';
+    statusBar.classList.add('visible');
+    mainBtn.textContent = 'PAUSE';
+
+    getReadyTimeout = setTimeout(() => {
+      statusBar.classList.remove('visible');
+      startCountdown();
+    }, 5000);
+  }
+
+  // ── Main button ──
+  mainBtn.addEventListener('click', () => {
+    ensureAudio();
+
+    if (state === 'idle' || state === 'done') {
+      // fresh start
+      roundsDone = 0;
+      currentSec = userSec;
+      buildDots(userOcc);
+      updateDots();
+      setAdjEnabled(false);
+      setProgress(1);
+      showSec(currentSec);
+      showOcc(userOcc);
+      startCountdown();
+
+    } else if (state === 'running') {
+      // pause
+      clearInterval(tickInterval);
+      tickInterval = null;
+      state = 'paused';
+      mainBtn.textContent = 'RESUME';
+      mainBtn.classList.add('paused');
+
+    } else if (state === 'paused') {
+      // resume
+      state = 'running';
+      mainBtn.textContent = 'PAUSE';
+      mainBtn.classList.remove('paused');
+      tickInterval = setInterval(() => {
+        currentSec--;
+        showSec(currentSec);
+        setProgress(currentSec / userSec);
+        if (currentSec <= 0) {
+          clearInterval(tickInterval);
+          tickInterval = null;
+          onRoundEnd();
+        }
+      }, 1000);
+
+    } else if (state === 'get-ready') {
+      // pause during get-ready gap
+      clearTimeout(getReadyTimeout);
+      getReadyTimeout = null;
+      state = 'paused';
+      mainBtn.textContent = 'RESUME';
+      mainBtn.classList.add('paused');
+      statusBar.classList.remove('visible');
+
+    }
+  });
+
+  // ── Reset ──
+  resetBtn.addEventListener('click', () => {
+    clearInterval(tickInterval);
+    clearTimeout(getReadyTimeout);
+    tickInterval = null;
+    getReadyTimeout = null;
+    state = 'idle';
+    roundsDone = 0;
+    currentSec = userSec;
+    showSec(userSec);
+    showOcc(userOcc);
+    setProgress(0);
+    mainBtn.textContent = 'START';
+    mainBtn.classList.remove('paused');
+    statusBar.classList.remove('visible');
+    statusBar.style.color = 'var(--ready)';
+    statusBar.style.textShadow = '0 0 40px rgba(0,191,255,0.6)';
+    setAdjEnabled(true);
+    buildDots(userOcc);
+  });
+
+  // ── Init ──
+  showSec(DEFAULT_SEC);
+  showOcc(DEFAULT_OCC);
+  buildDots(DEFAULT_OCC);
+  setProgress(0);
+</script>
+</body>
+</html>
