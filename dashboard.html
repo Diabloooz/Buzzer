@@ -8,382 +8,460 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #ffffff;
-      --surface:   #ffffff;
-      --border:    #e8e8e8;
-      --row-hover: #f7f7f7;
-      --text:      #0a0a0a;
-      --sub:       #999999;
-      --price:     #0a0a0a;
-      --red:       #d32f2f;
-      --header-bg: #f4f4f4;
+      --bg:      #f0f0f0;
+      --card:    #ffffff;
+      --border:  #e2e2e2;
+      --divider: #f4f4f4;
+      --text:    #0a0a0a;
+      --sub:     #999999;
+      --red:     #cc2222;
+      --blue:    #0066cc;
+      --hdr:     #fafafa;
     }
 
     html, body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Courier New', Courier, monospace;
       min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     }
 
     body {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 48px 20px;
+      padding: 20px 12px 28px;
     }
 
-    /* ── Header ── */
-    header {
+    /* ─── Page header ─── */
+    .page-hdr {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 16px;
     }
 
     h1 {
-      font-size: clamp(20px, 4vw, 32px);
-      letter-spacing: 10px;
+      font-size: clamp(15px, 3.5vw, 22px);
+      letter-spacing: 7px;
       text-transform: uppercase;
-      color: var(--text);
-      font-weight: bold;
-      margin-bottom: 10px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      font-family: 'Courier New', monospace;
     }
 
-    #timestamp {
-      font-size: 12px;
+    #ts {
+      font-size: 10px;
       letter-spacing: 2px;
       color: var(--sub);
       text-transform: uppercase;
+      font-family: 'Courier New', monospace;
     }
 
-    /* ── Table ── */
-    .table-wrap {
-      width: min(700px, 100%);
-      border: 1px solid var(--border);
+    /* ─── Cards grid ─── */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 700px;
+    }
+
+    @media (min-width: 560px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ─── Card ─── */
+    .card {
+      background: var(--card);
       border-radius: 12px;
+      border: 1px solid var(--border);
       overflow: hidden;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .card-hdr {
+      background: var(--hdr);
+      border-bottom: 1px solid var(--border);
+      padding: 9px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
     }
 
-    thead th {
-      background: var(--header-bg);
-      color: var(--sub);
-      font-size: 10px;
-      letter-spacing: 4px;
+    .card-name {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      padding: 14px 28px;
-      font-weight: normal;
-      border-bottom: 1px solid var(--border);
+      font-family: 'Courier New', monospace;
     }
 
-    thead th:not(:first-child) { text-align: right; }
-
-    tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background 0.12s;
-    }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--row-hover); }
-
-    td { padding: 22px 28px; vertical-align: middle; }
-
-    /* asset column */
-    .asset-name {
-      font-size: 18px;
-      font-weight: bold;
-      color: var(--text);
-      letter-spacing: 1px;
-      margin-bottom: 4px;
-    }
-    .asset-label {
-      font-size: 11px;
+    .card-unit {
+      font-size: 9px;
       color: var(--sub);
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
     }
 
-    /* price column */
-    .price-cell {
-      text-align: right;
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: 1px;
-      color: var(--price);
-      white-space: nowrap;
+    /* ─── Rate row ─── */
+    .rrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      min-height: 56px;
+      gap: 8px;
     }
-    .price-cell.is-loading {
+
+    .rrow + .rrow { border-top: 1px solid var(--divider); }
+
+    .rrow-price {
+      font-size: clamp(22px, 5vw, 28px);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      line-height: 1;
+      font-family: 'Courier New', monospace;
+      flex-shrink: 0;
+      color: var(--text);
+    }
+
+    .rrow-price.ld {
+      font-size: 16px;
       color: #cccccc;
-      font-size: 24px;
+      font-weight: 400;
       animation: pulse 1.2s ease-in-out infinite;
     }
-    .price-cell.is-error {
+
+    .rrow-price.er {
+      font-size: 10px;
       color: var(--red);
-      font-size: 13px;
-      letter-spacing: 2px;
-      font-weight: normal;
+      font-weight: 400;
+      letter-spacing: 1px;
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.3; }
-      50%       { opacity: 1;   }
+      0%, 100% { opacity: 0.25; }
+      50%       { opacity: 1; }
     }
 
-    /* unit column */
-    .unit-cell {
+    .rrow-right {
       text-align: right;
-      font-size: 11px;
+      flex-shrink: 0;
+      max-width: 55%;
+    }
+
+    .rrow-src {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--blue);
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rrow-src:hover { text-decoration: underline; }
+
+    .rrow-note {
+      font-size: 9px;
       color: var(--sub);
-      letter-spacing: 1px;
+      margin-left: 3px;
+      font-style: italic;
+    }
+
+    .rrow-time {
+      display: block;
+      font-size: 9px;
+      color: var(--sub);
+      margin-top: 3px;
+      font-family: 'Courier New', monospace;
       white-space: nowrap;
     }
 
-    /* ── Footer ── */
-    footer {
-      margin-top: 28px;
+    /* ─── Footer ─── */
+    .foot {
+      margin-top: 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 7px;
     }
 
-    #refresh-btn {
-      padding: 10px 32px;
-      background: var(--text);
+    #rbtn {
+      padding: 8px 28px;
+      background: #0a0a0a;
       border: none;
-      color: #ffffff;
-      font-family: inherit;
-      font-size: 11px;
-      letter-spacing: 4px;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
       text-transform: uppercase;
-      border-radius: 6px;
+      border-radius: 20px;
       cursor: pointer;
       transition: opacity 0.2s;
     }
-    #refresh-btn:hover:not(:disabled) { opacity: 0.75; }
-    #refresh-btn:disabled { opacity: 0.3; cursor: default; }
 
-    #next-refresh {
-      font-size: 11px;
+    #rbtn:hover:not(:disabled) { opacity: 0.7; }
+    #rbtn:disabled { opacity: 0.3; cursor: default; }
+
+    #cd {
+      font-size: 10px;
       color: var(--sub);
       letter-spacing: 1px;
+      font-family: 'Courier New', monospace;
     }
-
-    /* ── Sources ── */
-    .sources {
-      margin-top: 24px;
-      font-size: 10px;
-      color: #cccccc;
-      letter-spacing: 1px;
-      text-align: center;
-      line-height: 2;
-    }
-    .sources a { color: #bbbbbb; text-decoration: none; }
-    .sources a:hover { color: var(--sub); }
   </style>
 </head>
 <body>
 
-<header>
+<div class="page-hdr">
   <h1>Live Market Rates</h1>
-  <p id="timestamp">INITIALISING...</p>
-</header>
-
-<div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th>Asset</th>
-        <th>Price</th>
-        <th>Unit</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
+  <p id="ts">Loading…</p>
 </div>
 
-<footer>
-  <button id="refresh-btn">&#8635; Refresh</button>
-  <p id="next-refresh"></p>
-</footer>
+<div class="grid" id="grid"></div>
 
-<p class="sources">
-  FX: <a href="https://open.er-api.com" target="_blank">open.er-api.com</a> &nbsp;&middot;&nbsp;
-  Gold: <a href="https://metals.live" target="_blank">metals.live</a> / Coinbase &nbsp;&middot;&nbsp;
-  Brent: Yahoo Finance
-</p>
+<div class="foot">
+  <button id="rbtn">↻ Refresh</button>
+  <span id="cd"></span>
+</div>
 
 <script>
-  'use strict';
+'use strict';
 
-  const ROWS = [
-    { id: 'usd-egp', name: 'USD / EGP',   label: 'US Dollar → Egyptian Pound',    unit: 'EGP per USD'    },
-    { id: 'sar-egp', name: 'SAR / EGP',   label: 'Saudi Riyal → Egyptian Pound',  unit: 'EGP per SAR'    },
-    { id: 'gold',    name: 'Gold',         label: 'Spot price',                     unit: 'USD / troy oz'  },
-    { id: 'brent',   name: 'Brent Crude',  label: 'Spot price',                     unit: 'USD / barrel'   },
-  ];
+// ── Asset definitions ─────────────────────────────────────────────────────────
+const ASSETS = [
+  {
+    id: 'usd', name: 'USD / EGP', unit: 'EGP per 1 USD', dec: 2,
+    rows: [
+      { key: 'era',   src: 'ExchangeRate-API', href: 'https://open.er-api.com' },
+      { key: 'fawaz', src: 'Currency API · CDN', href: 'https://currency-api.pages.dev' },
+    ]
+  },
+  {
+    id: 'sar', name: 'SAR / EGP', unit: 'EGP per 1 SAR', dec: 4,
+    rows: [
+      { key: 'era',   src: 'ExchangeRate-API', href: 'https://open.er-api.com' },
+      { key: 'fawaz', src: 'Currency API · CDN', href: 'https://currency-api.pages.dev' },
+    ]
+  },
+  {
+    id: 'gold', name: 'Gold', unit: 'USD / troy oz', dec: 2,
+    rows: [
+      { key: 'metals',   src: 'metals.live',  href: 'https://metals.live' },
+      { key: 'coinbase', src: 'Coinbase XAU', href: 'https://coinbase.com' },
+    ]
+  },
+  {
+    id: 'crude', name: 'Crude Oil', unit: 'USD / barrel', dec: 2,
+    rows: [
+      { key: 'brent', src: 'Yahoo · Brent (BZ=F)', href: 'https://finance.yahoo.com' },
+      { key: 'wti',   src: 'Yahoo · WTI (CL=F)',   href: 'https://finance.yahoo.com', note: 'diff. grade' },
+    ]
+  },
+];
 
-  /* ── Build table skeleton ── */
-  const tbody = document.getElementById('tbody');
-  ROWS.forEach(({ id, name, label, unit }) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML =
-      `<td><div class="asset-name">${name}</div><div class="asset-label">${label}</div></td>` +
-      `<td class="price-cell is-loading" id="p-${id}">···</td>` +
-      `<td class="unit-cell">${unit}</td>`;
-    tbody.appendChild(tr);
+// ── Build DOM ─────────────────────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+
+ASSETS.forEach(a => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML =
+    `<div class="card-hdr">
+       <span class="card-name">${a.name}</span>
+       <span class="card-unit">${a.unit}</span>
+     </div>` +
+    a.rows.map(r =>
+      `<div class="rrow">
+         <div class="rrow-price ld" id="p-${a.id}-${r.key}">···</div>
+         <div class="rrow-right">
+           <a class="rrow-src" href="${r.href}" target="_blank" rel="noopener">${r.src}</a>
+           ${r.note ? `<span class="rrow-note">${r.note}</span>` : ''}
+           <span class="rrow-time" id="t-${a.id}-${r.key}">—</span>
+         </div>
+       </div>`
+    ).join('');
+  grid.appendChild(card);
+});
+
+// ── DOM helpers ───────────────────────────────────────────────────────────────
+function setP(aid, key, val, dec) {
+  const el = document.getElementById(`p-${aid}-${key}`);
+  el.className = 'rrow-price';
+  el.textContent = val.toLocaleString('en-US', {
+    minimumFractionDigits: dec, maximumFractionDigits: dec,
   });
+}
 
-  /* ── Cell helpers ── */
-  function show(id, value, decimals) {
-    const el = document.getElementById(`p-${id}`);
-    el.className = 'price-cell';
-    el.textContent = value.toLocaleString('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
+function setT(aid, key, ts) {
+  const el = document.getElementById(`t-${aid}-${key}`);
+  if (ts instanceof Date) {
+    el.textContent = ts.toLocaleTimeString('en-US', {
+      hour12: false, hour: '2-digit', minute: '2-digit',
     });
+  } else {
+    el.textContent = String(ts);  // date-only string
   }
+}
 
-  function loading(id) {
-    const el = document.getElementById(`p-${id}`);
-    el.className = 'price-cell is-loading';
-    el.textContent = '···';
+function setLd(aid, key) {
+  const el = document.getElementById(`p-${aid}-${key}`);
+  el.className = 'rrow-price ld'; el.textContent = '···';
+  document.getElementById(`t-${aid}-${key}`).textContent = '—';
+}
+
+function setEr(aid, key, msg) {
+  const el = document.getElementById(`p-${aid}-${key}`);
+  el.className = 'rrow-price er'; el.textContent = msg || 'N/A';
+  document.getElementById(`t-${aid}-${key}`).textContent = '—';
+}
+
+// ── Fetchers ──────────────────────────────────────────────────────────────────
+
+// open.er-api.com  →  USD/EGP  &  SAR/EGP
+async function fetchERA() {
+  const r = await fetch('https://open.er-api.com/v6/latest/USD', {
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  if (d.result !== 'success') throw new Error('error');
+  const ts  = new Date(d.time_last_update_utc);
+  const egp = d.rates.EGP, sar = d.rates.SAR;
+  if (!egp || !sar) throw new Error('missing rates');
+  setP('usd', 'era', egp,       2); setT('usd', 'era', ts);
+  setP('sar', 'era', egp / sar, 4); setT('sar', 'era', ts);
+}
+
+// currency-api.pages.dev  →  USD/EGP  &  SAR/EGP
+async function fetchFawaz() {
+  const r = await fetch('https://currency-api.pages.dev/v1/currencies/usd.min.json', {
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  const egp = d.usd?.egp, sar = d.usd?.sar;
+  if (!egp || !sar) throw new Error('missing rates');
+  const ts = d.date || '—';   // API returns "YYYY-MM-DD" only
+  setP('usd', 'fawaz', egp,       2); setT('usd', 'fawaz', ts);
+  setP('sar', 'fawaz', egp / sar, 4); setT('sar', 'fawaz', ts);
+}
+
+// metals.live  →  Gold spot
+async function fetchMetals() {
+  const r = await fetch('https://api.metals.live/v1/spot', {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  let p = null;
+  if (Array.isArray(d)) {
+    const o = d.find(x => 'gold' in x || 'XAU' in x);
+    p = o?.gold ?? o?.XAU ?? null;
+  } else if (d && typeof d === 'object') {
+    p = d.gold ?? d.XAU ?? null;
   }
+  if (typeof p !== 'number' || p <= 0) throw new Error('parse error');
+  setP('gold', 'metals', p, 2); setT('gold', 'metals', new Date());
+}
 
-  function fail(id, msg) {
-    const el = document.getElementById(`p-${id}`);
-    el.className = 'price-cell is-error';
-    el.textContent = msg || 'N/A';
-  }
+// Coinbase  →  Gold spot (XAU-USD)
+async function fetchCoinbase() {
+  const r = await fetch('https://api.coinbase.com/v2/prices/XAU-USD/spot', {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  const p = parseFloat(d?.data?.amount);
+  if (!p || isNaN(p)) throw new Error('parse error');
+  setP('gold', 'coinbase', p, 2); setT('gold', 'coinbase', new Date());
+}
 
-  /* ── FX: open.er-api.com ── */
-  async function fetchFX() {
-    const r = await fetch('https://open.er-api.com/v6/latest/USD', {
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d = await r.json();
-    if (d.result !== 'success') throw new Error('API error');
-    const egp = d.rates.EGP;
-    const sar = d.rates.SAR;
-    if (!egp || !sar) throw new Error('Missing rates');
-    show('usd-egp', egp, 2);
-    show('sar-egp', egp / sar, 4);
-  }
-
-  /* ── Gold: metals.live → Coinbase fallback ── */
-  async function fetchGold() {
-    // Primary: metals.live
+// Yahoo Finance  →  Brent (BZ=F) or WTI (CL=F)
+async function fetchYahoo(symbol, aid, key) {
+  const enc   = encodeURIComponent(symbol);
+  const base  = `https://query1.finance.yahoo.com/v8/finance/chart/${enc}?interval=1m&range=1d`;
+  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(base);
+  for (const url of [base, proxy]) {
     try {
-      const r = await fetch('https://api.metals.live/v1/spot', {
-        signal: AbortSignal.timeout(10000),
-      });
-      if (r.ok) {
-        const d = await r.json();
-        let price = null;
-        if (Array.isArray(d)) {
-          const obj = d.find(o => 'gold' in o || 'XAU' in o);
-          price = obj?.gold ?? obj?.XAU ?? null;
-        } else if (d && typeof d === 'object') {
-          price = d.gold ?? d.XAU ?? null;
-        }
-        if (typeof price === 'number' && price > 0) {
-          show('gold', price, 2);
-          return;
-        }
+      const r    = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      if (!r.ok) continue;
+      const d    = await r.json();
+      const meta = d?.chart?.result?.[0]?.meta;
+      const p    = meta?.regularMarketPrice;
+      const ts   = meta?.regularMarketTime
+        ? new Date(meta.regularMarketTime * 1000)
+        : new Date();
+      if (typeof p === 'number' && p > 0) {
+        setP(aid, key, p, 2); setT(aid, key, ts); return;
       }
-    } catch { /* fall through */ }
+    } catch { /* try next */ }
+  }
+  throw new Error('unavailable');
+}
 
-    // Fallback: Coinbase XAU-USD (no key, CORS-friendly)
-    const r = await fetch('https://api.coinbase.com/v2/prices/XAU-USD/spot', {
-      signal: AbortSignal.timeout(10000),
+// ── Countdown timer ───────────────────────────────────────────────────────────
+const IV = 5 * 60 * 1000;
+let autoTimer, cdTimer, nextAt;
+
+function startCd() {
+  nextAt = Date.now() + IV;
+  clearInterval(cdTimer);
+  cdTimer = setInterval(() => {
+    const rem = Math.max(0, nextAt - Date.now());
+    const m = Math.floor(rem / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    document.getElementById('cd').textContent =
+      `Auto-refresh in ${m}:${String(s).padStart(2, '0')}`;
+  }, 1000);
+}
+
+// ── Main refresh ──────────────────────────────────────────────────────────────
+async function refresh() {
+  const btn = document.getElementById('rbtn');
+  btn.disabled = true;
+  clearInterval(cdTimer);
+  document.getElementById('cd').textContent = '';
+  ASSETS.forEach(a => a.rows.forEach(r => setLd(a.id, r.key)));
+  document.getElementById('ts').textContent = 'Fetching…';
+
+  const [eraR, fwzR, metR, cbR, brR, wtiR] = await Promise.allSettled([
+    fetchERA(),
+    fetchFawaz(),
+    fetchMetals(),
+    fetchCoinbase(),
+    fetchYahoo('BZ=F', 'crude', 'brent'),
+    fetchYahoo('CL=F', 'crude', 'wti'),
+  ]);
+
+  if (eraR.status === 'rejected') { setEr('usd','era','Error'); setEr('sar','era','Error'); }
+  if (fwzR.status === 'rejected') { setEr('usd','fawaz','Error'); setEr('sar','fawaz','Error'); }
+  if (metR.status === 'rejected')  setEr('gold',  'metals',   'Unavailable');
+  if (cbR.status  === 'rejected')  setEr('gold',  'coinbase', 'Unavailable');
+  if (brR.status  === 'rejected')  setEr('crude', 'brent',    'Unavailable');
+  if (wtiR.status === 'rejected')  setEr('crude', 'wti',      'Unavailable');
+
+  const now = new Date();
+  document.getElementById('ts').textContent =
+    'Updated ' + now.toLocaleString('en-US', {
+      day: '2-digit', month: 'short',
+      hour: '2-digit', minute: '2-digit', hour12: false,
     });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d = await r.json();
-    const price = parseFloat(d?.data?.amount);
-    if (!price || isNaN(price)) throw new Error('Parse error');
-    show('gold', price, 2);
-  }
 
-  /* ── Brent: Yahoo Finance → CORS proxy fallback ── */
-  async function fetchBrent() {
-    const base    = 'https://query1.finance.yahoo.com/v8/finance/chart/BZ%3DF?interval=1m&range=1d';
-    const proxied = 'https://corsproxy.io/?' + encodeURIComponent(base);
+  btn.disabled = false;
+  startCd();
+}
 
-    for (const url of [base, proxied]) {
-      try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
-        if (!r.ok) continue;
-        const d = await r.json();
-        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-        if (typeof price === 'number' && price > 0) {
-          show('brent', price, 2);
-          return;
-        }
-      } catch { /* try next */ }
-    }
-    throw new Error('Unavailable');
-  }
-
-  /* ── Countdown ── */
-  let countdownTimer = null;
-  let nextRefreshAt  = null;
-
-  function startCountdown(ms) {
-    nextRefreshAt = Date.now() + ms;
-    clearInterval(countdownTimer);
-    countdownTimer = setInterval(() => {
-      const rem = Math.max(0, nextRefreshAt - Date.now());
-      const m   = Math.floor(rem / 60000);
-      const s   = Math.floor((rem % 60000) / 1000);
-      document.getElementById('next-refresh').textContent =
-        `Next auto-refresh in ${m}:${String(s).padStart(2, '0')}`;
-      if (rem === 0) clearInterval(countdownTimer);
-    }, 1000);
-  }
-
-  /* ── Main refresh ── */
-  const INTERVAL_MS = 5 * 60 * 1000;
-
-  async function refresh() {
-    const btn = document.getElementById('refresh-btn');
-    btn.disabled = true;
-    clearInterval(countdownTimer);
-    document.getElementById('next-refresh').textContent = '';
-    ROWS.forEach(r => loading(r.id));
-    document.getElementById('timestamp').textContent = 'FETCHING...';
-
-    const [fxR, goldR, brentR] = await Promise.allSettled([
-      fetchFX(),
-      fetchGold(),
-      fetchBrent(),
-    ]);
-
-    if (fxR.status   === 'rejected') { fail('usd-egp', 'Error'); fail('sar-egp', 'Error'); }
-    if (goldR.status === 'rejected') fail('gold',  'Unavailable');
-    if (brentR.status === 'rejected') fail('brent', 'Unavailable');
-
-    const now = new Date();
-    document.getElementById('timestamp').textContent =
-      'Updated  ' +
-      now.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() +
-      '  ' +
-      now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    btn.disabled = false;
-    startCountdown(INTERVAL_MS);
-  }
-
-  /* ── Boot ── */
-  let autoTimer = setInterval(refresh, INTERVAL_MS);
-  document.getElementById('refresh-btn').addEventListener('click', () => {
-    clearInterval(autoTimer);
-    refresh();
-    autoTimer = setInterval(refresh, INTERVAL_MS);
-  });
+// ── Boot ──────────────────────────────────────────────────────────────────────
+document.getElementById('rbtn').addEventListener('click', () => {
+  clearInterval(autoTimer);
   refresh();
+  autoTimer = setInterval(refresh, IV);
+});
+
+autoTimer = setInterval(refresh, IV);
+refresh();
 </script>
 
 </body>
