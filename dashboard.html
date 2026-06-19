@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Market Rates</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0a0a0a;
+      --surface: #111111;
+      --row-hover: #161616;
+      --border:  #1e1e1e;
+      --accent:  #e8ff00;
+      --green:   #00e676;
+      --red:     #ff4d00;
+      --muted:   #444444;
+      --text:    #f0f0f0;
+      --sub:     #666666;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      gap: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: clamp(16px, 3vw, 22px);
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    #timestamp {
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      width: min(640px, 100%);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      background: #0d0d0d;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 12px 20px;
+      font-weight: normal;
+      border-bottom: 1px solid var(--border);
+    }
+
+    thead th:not(:first-child) { text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--row-hover); }
+
+    td { padding: 18px 20px; vertical-align: middle; }
+
+    /* asset column */
+    .asset-name {
+      font-size: 15px;
+      font-weight: bold;
+      color: var(--text);
+      letter-spacing: 1px;
+      margin-bottom: 3px;
+    }
+    .asset-label {
+      font-size: 11px;
+      color: var(--sub);
+      letter-spacing: 1px;
+    }
+
+    /* price column */
+    .price-cell {
+      text-align: right;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      color: var(--green);
+      white-space: nowrap;
+    }
+    .price-cell.is-loading {
+      color: var(--muted);
+      font-size: 16px;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .price-cell.is-error {
+      color: var(--red);
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 1;   }
+    }
+
+    /* unit column */
+    .unit-cell {
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #refresh-btn {
+      padding: 9px 28px;
+      background: transparent;
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #refresh-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    #refresh-btn:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    #next-refresh {
+      font-size: 11px;
+      color: var(--sub);
+      letter-spacing: 1px;
+    }
+
+    /* ── Sources note ── */
+    .sources {
+      margin-top: 20px;
+      font-size: 10px;
+      color: #333;
+      letter-spacing: 1px;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .sources a { color: #444; text-decoration: none; }
+    .sources a:hover { color: var(--sub); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Live Market Rates</h1>
+  <p id="timestamp">INITIALISING...</p>
+</header>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Asset</th>
+        <th>Price</th>
+        <th>Unit</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<footer>
+  <button id="refresh-btn">&#8635; Refresh</button>
+  <p id="next-refresh"></p>
+</footer>
+
+<p class="sources">
+  FX: <a href="https://open.er-api.com" target="_blank">open.er-api.com</a> &nbsp;&middot;&nbsp;
+  Gold: <a href="https://metals.live" target="_blank">metals.live</a> &nbsp;&middot;&nbsp;
+  Brent: Yahoo Finance
+</p>
+
+<script>
+  'use strict';
+
+  const ROWS = [
+    { id: 'usd-egp', name: 'USD / EGP',    label: 'US Dollar → Egyptian Pound', unit: 'EGP per USD'   },
+    { id: 'sar-egp', name: 'SAR / EGP',    label: 'Saudi Riyal → Egyptian Pound', unit: 'EGP per SAR' },
+    { id: 'gold',    name: 'Gold',          label: 'Spot price',                   unit: 'USD / troy oz' },
+    { id: 'brent',   name: 'Brent Crude',   label: 'Spot price',                   unit: 'USD / barrel'  },
+  ];
+
+  /* ── Build table skeleton ── */
+  const tbody = document.getElementById('tbody');
+  ROWS.forEach(({ id, name, label, unit }) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td><div class="asset-name">${name}</div><div class="asset-label">${label}</div></td>` +
+      `<td class="price-cell is-loading" id="p-${id}">···</td>` +
+      `<td class="unit-cell">${unit}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  /* ── Cell helpers ── */
+  function show(id, value, decimals) {
+    const el = document.getElementById(`p-${id}`);
+    el.className = 'price-cell';
+    el.textContent = value.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+
+  function loading(id) {
+    const el = document.getElementById(`p-${id}`);
+    el.className = 'price-cell is-loading';
+    el.textContent = '···';
+  }
+
+  function fail(id, msg) {
+    const el = document.getElementById(`p-${id}`);
+    el.className = 'price-cell is-error';
+    el.textContent = msg || 'N/A';
+  }
+
+  /* ── API: FX from open.er-api.com ── */
+  async function fetchFX() {
+    const r = await fetch('https://open.er-api.com/v6/latest/USD', {
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    if (d.result !== 'success') throw new Error('API error');
+    const egp = d.rates.EGP;
+    const sar = d.rates.SAR;
+    if (!egp || !sar) throw new Error('Missing rates');
+    show('usd-egp', egp, 2);
+    show('sar-egp', egp / sar, 4);
+  }
+
+  /* ── API: Gold from metals.live ── */
+  async function fetchGold() {
+    const r = await fetch('https://api.metals.live/v1/spot', {
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+
+    let price = null;
+    if (Array.isArray(d)) {
+      // [{gold: 3300}, {silver: 32}, ...]  or  [{XAU: 3300}, ...]
+      const obj = d.find(o => 'gold' in o || 'XAU' in o);
+      price = obj?.gold ?? obj?.XAU ?? null;
+    } else if (d && typeof d === 'object') {
+      price = d.gold ?? d.XAU ?? null;
+    }
+    if (price === null || typeof price !== 'number') throw new Error('Parse error');
+    show('gold', price, 2);
+  }
+
+  /* ── API: Brent Crude from Yahoo Finance (CORS-proxy fallback) ── */
+  async function fetchBrent() {
+    const symbol   = 'BZ%3DF'; // BZ=F url-encoded
+    const direct   = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`;
+    const proxied  = `https://corsproxy.io/?${encodeURIComponent(direct)}`;
+
+    for (const url of [direct, proxied]) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
+        if (!r.ok) continue;
+        const d = await r.json();
+        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        if (typeof price === 'number' && price > 0) {
+          show('brent', price, 2);
+          return;
+        }
+      } catch {
+        // try next URL
+      }
+    }
+    throw new Error('Unavailable');
+  }
+
+  /* ── Countdown ── */
+  let countdownTimer = null;
+  let nextRefreshAt  = null;
+
+  function startCountdown(ms) {
+    nextRefreshAt = Date.now() + ms;
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      const remaining = Math.max(0, nextRefreshAt - Date.now());
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      document.getElementById('next-refresh').textContent =
+        `Next auto-refresh in ${m}:${String(s).padStart(2, '0')}`;
+      if (remaining === 0) clearInterval(countdownTimer);
+    }, 1000);
+  }
+
+  /* ── Main refresh ── */
+  const INTERVAL_MS = 5 * 60 * 1000;
+
+  async function refresh() {
+    const btn = document.getElementById('refresh-btn');
+    btn.disabled = true;
+    clearInterval(countdownTimer);
+    document.getElementById('next-refresh').textContent = '';
+    ROWS.forEach(r => loading(r.id));
+    document.getElementById('timestamp').textContent = 'FETCHING...';
+
+    const [fxR, goldR, brentR] = await Promise.allSettled([
+      fetchFX(),
+      fetchGold(),
+      fetchBrent(),
+    ]);
+
+    if (fxR.status    === 'rejected') { fail('usd-egp', 'Error'); fail('sar-egp', 'Error'); }
+    if (goldR.status  === 'rejected') fail('gold',  'Unavailable');
+    if (brentR.status === 'rejected') fail('brent', 'Unavailable');
+
+    const now = new Date();
+    document.getElementById('timestamp').textContent =
+      'UPDATED  ' +
+      now.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() +
+      '  ' +
+      now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    btn.disabled = false;
+    startCountdown(INTERVAL_MS);
+  }
+
+  /* ── Boot ── */
+  refresh();
+  setInterval(refresh, INTERVAL_MS);
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    refresh();
+    clearInterval(autoTimer);
+    autoTimer = setInterval(refresh, INTERVAL_MS);
+  });
+
+  let autoTimer = setInterval(refresh, INTERVAL_MS);
+</script>
+
+</body>
+</html>
