@@ -248,8 +248,8 @@ const ASSETS = [
   {
     id: 'gold', name: 'Gold', unit: 'USD / troy oz', dec: 2,
     rows: [
-      { key: 'metals',   src: 'metals.live',  href: 'https://metals.live' },
-      { key: 'coinbase', src: 'Coinbase XAU', href: 'https://coinbase.com' },
+      { key: 'coinbase', src: 'Coinbase XAU',      href: 'https://coinbase.com' },
+      { key: 'yahoo',    src: 'Yahoo · Gold (GC=F)', href: 'https://finance.yahoo.com' },
     ]
   },
   {
@@ -348,24 +348,6 @@ async function fetchFawaz() {
   setP('sar', 'fawaz', egp / sar, 4); setT('sar', 'fawaz', ts);
 }
 
-// metals.live  →  Gold spot
-async function fetchMetals() {
-  const r = await fetch('https://api.metals.live/v1/spot', {
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const d = await r.json();
-  let p = null;
-  if (Array.isArray(d)) {
-    const o = d.find(x => 'gold' in x || 'XAU' in x);
-    p = o?.gold ?? o?.XAU ?? null;
-  } else if (d && typeof d === 'object') {
-    p = d.gold ?? d.XAU ?? null;
-  }
-  if (typeof p !== 'number' || p <= 0) throw new Error('parse error');
-  setP('gold', 'metals', p, 2); setT('gold', 'metals', new Date());
-}
-
 // Coinbase  →  Gold spot (XAU-USD)
 async function fetchCoinbase() {
   const r = await fetch('https://api.coinbase.com/v2/prices/XAU-USD/spot', {
@@ -426,21 +408,21 @@ async function refresh() {
   ASSETS.forEach(a => a.rows.forEach(r => setLd(a.id, r.key)));
   document.getElementById('ts').textContent = 'Fetching…';
 
-  const [eraR, fwzR, metR, cbR, brR, wtiR] = await Promise.allSettled([
+  const [eraR, fwzR, cbR, goldYR, brR, wtiR] = await Promise.allSettled([
     fetchERA(),
     fetchFawaz(),
-    fetchMetals(),
     fetchCoinbase(),
+    fetchYahoo('GC=F', 'gold',  'yahoo'),
     fetchYahoo('BZ=F', 'crude', 'brent'),
     fetchYahoo('CL=F', 'crude', 'wti'),
   ]);
 
-  if (eraR.status === 'rejected') { setEr('usd','era','Error'); setEr('sar','era','Error'); }
-  if (fwzR.status === 'rejected') { setEr('usd','fawaz','Error'); setEr('sar','fawaz','Error'); }
-  if (metR.status === 'rejected')  setEr('gold',  'metals',   'Unavailable');
-  if (cbR.status  === 'rejected')  setEr('gold',  'coinbase', 'Unavailable');
-  if (brR.status  === 'rejected')  setEr('crude', 'brent',    'Unavailable');
-  if (wtiR.status === 'rejected')  setEr('crude', 'wti',      'Unavailable');
+  if (eraR.status  === 'rejected') { setEr('usd','era','Error'); setEr('sar','era','Error'); }
+  if (fwzR.status  === 'rejected') { setEr('usd','fawaz','Error'); setEr('sar','fawaz','Error'); }
+  if (cbR.status   === 'rejected')  setEr('gold',  'coinbase', 'Unavailable');
+  if (goldYR.status === 'rejected') setEr('gold',  'yahoo',    'Unavailable');
+  if (brR.status   === 'rejected')  setEr('crude', 'brent',    'Unavailable');
+  if (wtiR.status  === 'rejected')  setEr('crude', 'wti',      'Unavailable');
 
   const now = new Date();
   document.getElementById('ts').textContent =
