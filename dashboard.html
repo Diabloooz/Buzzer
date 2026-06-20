@@ -237,23 +237,20 @@
 <script>
 'use strict';
 
-// ── Shared state (for cross-row arrow values) ─────────────────────────────────
-const S = { fwzEgp: null, fwzSar: null };
-
 // ── Asset definitions ─────────────────────────────────────────────────────────
 const ASSETS = [
   {
     id: 'usd', name: 'USD / EGP', unit: 'EGP per 1 USD', dec: 2,
     rows: [
-      { key: 'era',   src: 'ExchangeRate-API',   href: 'https://open.er-api.com' },
-      { key: 'fawaz', src: 'Currency API · CDN', href: 'https://currency-api.pages.dev' },
+      { key: 'yahoo',      src: 'Yahoo Finance · FX', href: 'https://finance.yahoo.com/quote/USDEGP=X/' },
+      { key: 'floatrates', src: 'FloatRates',          href: 'https://www.floatrates.com' },
     ]
   },
   {
     id: 'sar', name: 'SAR / EGP', unit: 'EGP per 1 SAR', dec: 4,
     rows: [
-      { key: 'era',   src: 'ExchangeRate-API',   href: 'https://open.er-api.com' },
-      { key: 'fawaz', src: 'Currency API · CDN', href: 'https://currency-api.pages.dev' },
+      { key: 'yahoo',      src: 'Yahoo Finance · FX', href: 'https://finance.yahoo.com/quote/SAREGP=X/' },
+      { key: 'floatrates', src: 'FloatRates',          href: 'https://www.floatrates.com' },
     ]
   },
   {
@@ -324,25 +321,19 @@ function setP(aid, key, val, dec) {
   });
 }
 
-// checkStale: applies only to intraday market data (Yahoo Finance)
 function setT(aid, key, ts, checkStale = false) {
-  const tEl    = document.getElementById(`t-${aid}-${key}`);
-  const stEl   = document.getElementById(`stale-${aid}-${key}`);
-  const pEl    = document.getElementById(`p-${aid}-${key}`);
-  if (ts instanceof Date) {
-    tEl.textContent = fmtTime(ts);
-    if (checkStale) {
-      const ageH = (Date.now() - ts.getTime()) / 3_600_000;
-      if (ageH >= 1) {
-        pEl.classList.add('stale');
-        stEl.textContent = `displayed rate is ${Math.round(ageH)}h late`;
-      } else {
-        stEl.textContent = '';
-      }
+  const tEl  = document.getElementById(`t-${aid}-${key}`);
+  const stEl = document.getElementById(`stale-${aid}-${key}`);
+  const pEl  = document.getElementById(`p-${aid}-${key}`);
+  tEl.textContent = fmtTime(ts);
+  if (checkStale) {
+    const ageH = (Date.now() - ts.getTime()) / 3_600_000;
+    if (ageH >= 1) {
+      pEl.classList.add('stale');
+      stEl.textContent = `displayed rate is ${Math.round(ageH)}h late`;
+    } else {
+      stEl.textContent = '';
     }
-  } else {
-    tEl.textContent = String(ts);   // date-only string from Fawaz
-    if (stEl) stEl.textContent = '';
   }
 }
 
@@ -375,46 +366,24 @@ function setEr(aid, key, msg) {
 
 // ── Fetchers ──────────────────────────────────────────────────────────────────
 
-async function fetchERA() {
-  const r = await fetch('https://open.er-api.com/v6/latest/USD', {
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const d = await r.json();
-  if (d.result !== 'success') throw new Error('error');
-  const ts = new Date(d.time_last_update_utc);
-  const egp = d.rates.EGP, sar = d.rates.SAR;
-  if (!egp || !sar) throw new Error('missing rates');
-  // FX updates once daily — no staleness check
-  setP('usd', 'era', egp,       2); setT('usd', 'era', ts);
-  setP('sar', 'era', egp / sar, 4); setT('sar', 'era', ts);
-}
-
-async function fetchFawaz() {
-  const r = await fetch('https://currency-api.pages.dev/v1/currencies/usd.min.json', {
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const d = await r.json();
-  const egp = d.usd?.egp, sar = d.usd?.sar;
-  if (!egp || !sar) throw new Error('missing rates');
-  S.fwzEgp = egp; S.fwzSar = sar;   // store for FX change calc
-  const ts = d.date || '—';
-  setP('usd', 'fawaz', egp,       2); setT('usd', 'fawaz', ts);
-  setP('sar', 'fawaz', egp / sar, 4); setT('sar', 'fawaz', ts);
-}
-
-// Yesterday's Fawaz rates for FX 24h change arrow
-async function fetchFawazYest() {
-  const d   = new Date(Date.now() - 86_400_000);
-  const ds  = d.toISOString().slice(0, 10);
-  const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${ds}/v1/currencies/usd.min.json`;
-  const r   = await fetch(url, { signal: AbortSignal.timeout(10000) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const data = await r.json();
-  const egp  = data.usd?.egp, sar = data.usd?.sar;
-  if (!egp || !sar) throw new Error('missing');
-  return { egp, sar };
+// FloatRates — independent hourly FX source, no API key required
+async function fetchFloatRates() {
+  const base  = 'https://www.floatrates.com/daily/usd.json';
+  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(base);
+  for (const url of [base, proxy]) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      if (!r.ok) continue;
+      const d   = await r.json();
+      const egp = d?.egp?.rate, sar = d?.sar?.rate;
+      if (!egp || !sar) throw new Error('missing');
+      const ts = d.egp?.date ? new Date(d.egp.date) : new Date();
+      setP('usd', 'floatrates', egp,       2); setT('usd', 'floatrates', ts);
+      setP('sar', 'floatrates', egp / sar, 4); setT('sar', 'floatrates', ts);
+      return;
+    } catch { /* try next */ }
+  }
+  throw new Error('unavailable');
 }
 
 // Coinbase spot price (no 24h change from this endpoint)
@@ -460,15 +429,14 @@ async function fetchYahoo(symbol, aid, key, dec) {
 async function refresh() {
   const btn = document.getElementById('rbtn');
   btn.disabled = true;
-  S.fwzEgp = null; S.fwzSar = null;
   ASSETS.forEach(a => a.rows.forEach(r => setLd(a.id, r.key)));
   document.getElementById('ts').textContent = 'Fetching…';
 
-  const [eraR, fwzR, fwzYestR, cbXauR, goldYR, brR, wtiR, cbBtcR, btcYR] =
+  const [usdYR, sarYR, frR, cbXauR, goldYR, brR, wtiR, cbBtcR, btcYR] =
     await Promise.allSettled([
-      fetchERA(),
-      fetchFawaz(),
-      fetchFawazYest(),
+      fetchYahoo('USDEGP=X', 'usd',  'yahoo', 2),
+      fetchYahoo('SAREGP=X', 'sar',  'yahoo', 4),
+      fetchFloatRates(),
       fetchCoinbase('XAU-USD', 'gold', 'coinbase', 2),
       fetchYahoo('GC=F',     'gold',  'yahoo',   2),
       fetchYahoo('BZ=F',     'crude', 'brent',   2),
@@ -478,14 +446,24 @@ async function refresh() {
     ]);
 
   // ── Error states ────────────────────────────────────────────────────────────
-  if (eraR.status   === 'rejected') { setEr('usd','era','Error'); setEr('sar','era','Error'); }
-  if (fwzR.status   === 'rejected') { setEr('usd','fawaz','Error'); setEr('sar','fawaz','Error'); }
-  if (cbXauR.status === 'rejected')  setEr('gold',  'coinbase', 'Unavailable');
-  if (goldYR.status === 'rejected')  setEr('gold',  'yahoo',    'Unavailable');
-  if (brR.status    === 'rejected')  setEr('crude', 'brent',    'Unavailable');
-  if (wtiR.status   === 'rejected')  setEr('crude', 'wti',      'Unavailable');
-  if (cbBtcR.status === 'rejected')  setEr('btc',   'coinbase', 'Unavailable');
-  if (btcYR.status  === 'rejected')  setEr('btc',   'yahoo',    'Unavailable');
+  if (usdYR.status  === 'rejected') setEr('usd', 'yahoo', 'Unavailable');
+  if (sarYR.status  === 'rejected') setEr('sar', 'yahoo', 'Unavailable');
+  if (frR.status    === 'rejected') { setEr('usd', 'floatrates', 'Unavailable'); setEr('sar', 'floatrates', 'Unavailable'); }
+  if (cbXauR.status === 'rejected') setEr('gold',  'coinbase', 'Unavailable');
+  if (goldYR.status === 'rejected') setEr('gold',  'yahoo',    'Unavailable');
+  if (brR.status    === 'rejected') setEr('crude', 'brent',    'Unavailable');
+  if (wtiR.status   === 'rejected') setEr('crude', 'wti',      'Unavailable');
+  if (cbBtcR.status === 'rejected') setEr('btc',   'coinbase', 'Unavailable');
+  if (btcYR.status  === 'rejected') setEr('btc',   'yahoo',    'Unavailable');
+
+  // ── Arrows: FX — use Yahoo change% for both rows ────────────────────────────
+  const usdPct = usdYR.status === 'fulfilled' ? usdYR.value : null;
+  setArrow('usd', 'yahoo',      usdPct);
+  setArrow('usd', 'floatrates', usdPct);
+
+  const sarPct = sarYR.status === 'fulfilled' ? sarYR.value : null;
+  setArrow('sar', 'yahoo',      sarPct);
+  setArrow('sar', 'floatrates', sarPct);
 
   // ── Arrows: Gold — share Yahoo GC=F change% with both rows ─────────────────
   const goldPct = goldYR.status === 'fulfilled' ? goldYR.value : null;
@@ -500,15 +478,6 @@ async function refresh() {
   const btcPct = btcYR.status === 'fulfilled' ? btcYR.value : null;
   setArrow('btc', 'coinbase', btcPct);
   setArrow('btc', 'yahoo',    btcPct);
-
-  // ── Arrows: FX — compute from today vs yesterday Fawaz rates ───────────────
-  if (fwzR.status === 'fulfilled' && fwzYestR.status === 'fulfilled' && S.fwzEgp && S.fwzSar) {
-    const { egp: yEgp, sar: ySar } = fwzYestR.value;
-    const usdPct = (S.fwzEgp - yEgp)          / yEgp          * 100;
-    const sarPct = (S.fwzEgp / S.fwzSar - yEgp / ySar) / (yEgp / ySar) * 100;
-    setArrow('usd', 'era',   usdPct); setArrow('usd', 'fawaz', usdPct);
-    setArrow('sar', 'era',   sarPct); setArrow('sar', 'fawaz', sarPct);
-  }
 
   // ── Header timestamp (GMT+3) ────────────────────────────────────────────────
   const now = new Date();
