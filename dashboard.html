@@ -13,8 +13,9 @@
       --border:  #e2e2e2;
       --divider: #f4f4f4;
       --text:    #0a0a0a;
-      --sub:     #999999;
+      --sub:     #555555;   /* was #999 — now legible */
       --red:     #cc2222;
+      --green:   #1a8a4a;
       --blue:    #0066cc;
       --hdr:     #fafafa;
     }
@@ -30,26 +31,23 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px 12px 28px;
+      padding: 14px 12px 18px;
     }
 
     /* ─── Page header ─── */
-    .page-hdr {
-      text-align: center;
-      margin-bottom: 16px;
-    }
+    .page-hdr { text-align: center; margin-bottom: 12px; }
 
     h1 {
-      font-size: clamp(15px, 3.5vw, 22px);
+      font-size: clamp(13px, 3vw, 19px);
       letter-spacing: 7px;
       text-transform: uppercase;
       font-weight: 700;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       font-family: 'Courier New', monospace;
     }
 
     #ts {
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: 2px;
       color: var(--sub);
       text-transform: uppercase;
@@ -60,19 +58,21 @@
     .grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
-      max-width: 700px;
+      max-width: 720px;
     }
 
     @media (min-width: 560px) {
       .grid { grid-template-columns: 1fr 1fr; }
+      /* BTC is the 5th (odd) card — span full width */
+      .card:last-child:nth-child(odd) { grid-column: 1 / -1; }
     }
 
     /* ─── Card ─── */
     .card {
       background: var(--card);
-      border-radius: 12px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       overflow: hidden;
     }
@@ -80,7 +80,7 @@
     .card-hdr {
       background: var(--hdr);
       border-bottom: 1px solid var(--border);
-      padding: 9px 14px;
+      padding: 7px 13px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -96,8 +96,8 @@
     }
 
     .card-unit {
-      font-size: 9px;
-      color: var(--sub);
+      font-size: 11px;      /* ↑ was 9px */
+      color: var(--sub);    /* now #555 */
       letter-spacing: 0.5px;
       flex-shrink: 0;
     }
@@ -107,26 +107,33 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
-      min-height: 56px;
+      padding: 8px 13px;
+      min-height: 48px;
       gap: 8px;
     }
 
     .rrow + .rrow { border-top: 1px solid var(--divider); }
 
+    /* left: price + arrow */
+    .rrow-left {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
     .rrow-price {
-      font-size: clamp(22px, 5vw, 28px);
+      font-size: clamp(19px, 4.2vw, 25px);
       font-weight: 700;
       letter-spacing: 0.5px;
       line-height: 1;
       font-family: 'Courier New', monospace;
-      flex-shrink: 0;
       color: var(--text);
     }
 
     .rrow-price.ld {
-      font-size: 16px;
-      color: #cccccc;
+      font-size: 14px;
+      color: #ccc;
       font-weight: 400;
       animation: pulse 1.2s ease-in-out infinite;
     }
@@ -138,15 +145,22 @@
       letter-spacing: 1px;
     }
 
+    .rrow-price.stale { color: var(--red); }
+
     @keyframes pulse {
       0%, 100% { opacity: 0.25; }
       50%       { opacity: 1; }
     }
 
+    .rrow-arrow { font-size: 12px; font-weight: 700; line-height: 1; }
+    .rrow-arrow.up   { color: var(--green); }
+    .rrow-arrow.down { color: var(--red); }
+
+    /* right: source + time + stale */
     .rrow-right {
       text-align: right;
       flex-shrink: 0;
-      max-width: 55%;
+      max-width: 54%;
     }
 
     .rrow-src {
@@ -163,29 +177,31 @@
     .rrow-src:hover { text-decoration: underline; }
 
     .rrow-note {
-      font-size: 9px;
-      color: var(--sub);
+      font-size: 11px;      /* ↑ was 9px */
+      color: var(--sub);    /* now #555 */
       margin-left: 3px;
       font-style: italic;
     }
 
     .rrow-time {
       display: block;
-      font-size: 9px;
-      color: var(--sub);
-      margin-top: 3px;
+      font-size: 11px;      /* ↑ was 9px */
+      color: var(--sub);    /* now #555 */
+      margin-top: 2px;
       font-family: 'Courier New', monospace;
       white-space: nowrap;
     }
 
-    /* ─── Footer ─── */
-    .foot {
-      margin-top: 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 7px;
+    .rrow-stale {
+      display: block;
+      font-size: 9px;
+      color: var(--red);
+      margin-top: 1px;
+      font-family: 'Courier New', monospace;
     }
+
+    /* ─── Footer ─── */
+    .foot { margin-top: 10px; }
 
     #rbtn {
       padding: 8px 28px;
@@ -203,13 +219,6 @@
 
     #rbtn:hover:not(:disabled) { opacity: 0.7; }
     #rbtn:disabled { opacity: 0.3; cursor: default; }
-
-    #cd {
-      font-size: 10px;
-      color: var(--sub);
-      letter-spacing: 1px;
-      font-family: 'Courier New', monospace;
-    }
   </style>
 </head>
 <body>
@@ -223,32 +232,34 @@
 
 <div class="foot">
   <button id="rbtn">↻ Refresh</button>
-  <span id="cd"></span>
 </div>
 
 <script>
 'use strict';
+
+// ── Shared state (for cross-row arrow values) ─────────────────────────────────
+const S = { fwzEgp: null, fwzSar: null };
 
 // ── Asset definitions ─────────────────────────────────────────────────────────
 const ASSETS = [
   {
     id: 'usd', name: 'USD / EGP', unit: 'EGP per 1 USD', dec: 2,
     rows: [
-      { key: 'era',   src: 'ExchangeRate-API', href: 'https://open.er-api.com' },
+      { key: 'era',   src: 'ExchangeRate-API',   href: 'https://open.er-api.com' },
       { key: 'fawaz', src: 'Currency API · CDN', href: 'https://currency-api.pages.dev' },
     ]
   },
   {
     id: 'sar', name: 'SAR / EGP', unit: 'EGP per 1 SAR', dec: 4,
     rows: [
-      { key: 'era',   src: 'ExchangeRate-API', href: 'https://open.er-api.com' },
+      { key: 'era',   src: 'ExchangeRate-API',   href: 'https://open.er-api.com' },
       { key: 'fawaz', src: 'Currency API · CDN', href: 'https://currency-api.pages.dev' },
     ]
   },
   {
     id: 'gold', name: 'Gold', unit: 'USD / troy oz', dec: 2,
     rows: [
-      { key: 'coinbase', src: 'Coinbase XAU',      href: 'https://coinbase.com' },
+      { key: 'coinbase', src: 'Coinbase XAU',        href: 'https://coinbase.com' },
       { key: 'yahoo',    src: 'Yahoo · Gold (GC=F)', href: 'https://finance.yahoo.com' },
     ]
   },
@@ -257,6 +268,13 @@ const ASSETS = [
     rows: [
       { key: 'brent', src: 'Yahoo · Brent (BZ=F)', href: 'https://finance.yahoo.com' },
       { key: 'wti',   src: 'Yahoo · WTI (CL=F)',   href: 'https://finance.yahoo.com', note: 'diff. grade' },
+    ]
+  },
+  {
+    id: 'btc', name: 'Bitcoin', unit: 'USD per BTC', dec: 0,
+    rows: [
+      { key: 'coinbase', src: 'Coinbase BTC',    href: 'https://coinbase.com' },
+      { key: 'yahoo',    src: 'Yahoo · BTC-USD', href: 'https://finance.yahoo.com' },
     ]
   },
 ];
@@ -274,11 +292,15 @@ ASSETS.forEach(a => {
      </div>` +
     a.rows.map(r =>
       `<div class="rrow">
-         <div class="rrow-price ld" id="p-${a.id}-${r.key}">···</div>
+         <div class="rrow-left">
+           <span class="rrow-price ld" id="p-${a.id}-${r.key}">···</span>
+           <span class="rrow-arrow"    id="arr-${a.id}-${r.key}"></span>
+         </div>
          <div class="rrow-right">
            <a class="rrow-src" href="${r.href}" target="_blank" rel="noopener">${r.src}</a>
            ${r.note ? `<span class="rrow-note">${r.note}</span>` : ''}
-           <span class="rrow-time" id="t-${a.id}-${r.key}">—</span>
+           <span class="rrow-time"  id="t-${a.id}-${r.key}">—</span>
+           <span class="rrow-stale" id="stale-${a.id}-${r.key}"></span>
          </div>
        </div>`
     ).join('');
@@ -286,6 +308,14 @@ ASSETS.forEach(a => {
 });
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────
+function fmtTime(date) {
+  // Fixed GMT+3 (Asia/Riyadh has no DST, always UTC+3)
+  return date.toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Riyadh',
+    hour12: false, hour: '2-digit', minute: '2-digit',
+  }) + ' GMT+3';
+}
+
 function setP(aid, key, val, dec) {
   const el = document.getElementById(`p-${aid}-${key}`);
   el.className = 'rrow-price';
@@ -294,21 +324,47 @@ function setP(aid, key, val, dec) {
   });
 }
 
-function setT(aid, key, ts) {
-  const el = document.getElementById(`t-${aid}-${key}`);
+// checkStale: applies only to intraday market data (Yahoo Finance)
+function setT(aid, key, ts, checkStale = false) {
+  const tEl    = document.getElementById(`t-${aid}-${key}`);
+  const stEl   = document.getElementById(`stale-${aid}-${key}`);
+  const pEl    = document.getElementById(`p-${aid}-${key}`);
   if (ts instanceof Date) {
-    el.textContent = ts.toLocaleTimeString('en-US', {
-      hour12: false, hour: '2-digit', minute: '2-digit',
-    });
+    tEl.textContent = fmtTime(ts);
+    if (checkStale) {
+      const ageH = (Date.now() - ts.getTime()) / 3_600_000;
+      if (ageH >= 1) {
+        pEl.classList.add('stale');
+        stEl.textContent = `displayed rate is ${Math.round(ageH)}h late`;
+      } else {
+        stEl.textContent = '';
+      }
+    }
   } else {
-    el.textContent = String(ts);  // date-only string
+    tEl.textContent = String(ts);   // date-only string from Fawaz
+    if (stEl) stEl.textContent = '';
   }
 }
 
+function setArrow(aid, key, pct) {
+  const el = document.getElementById(`arr-${aid}-${key}`);
+  if (!el || pct === null || pct === undefined || isNaN(pct)) return;
+  const abs = Math.abs(pct);
+  if (abs < 1) { el.textContent = ''; el.className = 'rrow-arrow'; return; }
+  const up  = pct > 0;
+  const big = abs >= 5;
+  el.textContent = big ? (up ? '▲▲' : '▼▼') : (up ? '▲' : '▼');
+  el.className   = 'rrow-arrow ' + (up ? 'up' : 'down');
+}
+
 function setLd(aid, key) {
-  const el = document.getElementById(`p-${aid}-${key}`);
-  el.className = 'rrow-price ld'; el.textContent = '···';
+  const pEl = document.getElementById(`p-${aid}-${key}`);
+  pEl.className = 'rrow-price ld'; pEl.textContent = '···';
   document.getElementById(`t-${aid}-${key}`).textContent = '—';
+  const arrEl = document.getElementById(`arr-${aid}-${key}`);
+  if (arrEl) { arrEl.textContent = ''; arrEl.className = 'rrow-arrow'; }
+  const stEl = document.getElementById(`stale-${aid}-${key}`);
+  if (stEl) stEl.textContent = '';
 }
 
 function setEr(aid, key, msg) {
@@ -319,7 +375,6 @@ function setEr(aid, key, msg) {
 
 // ── Fetchers ──────────────────────────────────────────────────────────────────
 
-// open.er-api.com  →  USD/EGP  &  SAR/EGP
 async function fetchERA() {
   const r = await fetch('https://open.er-api.com/v6/latest/USD', {
     signal: AbortSignal.timeout(12000),
@@ -327,14 +382,14 @@ async function fetchERA() {
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = await r.json();
   if (d.result !== 'success') throw new Error('error');
-  const ts  = new Date(d.time_last_update_utc);
+  const ts = new Date(d.time_last_update_utc);
   const egp = d.rates.EGP, sar = d.rates.SAR;
   if (!egp || !sar) throw new Error('missing rates');
+  // FX updates once daily — no staleness check
   setP('usd', 'era', egp,       2); setT('usd', 'era', ts);
   setP('sar', 'era', egp / sar, 4); setT('sar', 'era', ts);
 }
 
-// currency-api.pages.dev  →  USD/EGP  &  SAR/EGP
 async function fetchFawaz() {
   const r = await fetch('https://currency-api.pages.dev/v1/currencies/usd.min.json', {
     signal: AbortSignal.timeout(12000),
@@ -343,25 +398,40 @@ async function fetchFawaz() {
   const d = await r.json();
   const egp = d.usd?.egp, sar = d.usd?.sar;
   if (!egp || !sar) throw new Error('missing rates');
-  const ts = d.date || '—';   // API returns "YYYY-MM-DD" only
+  S.fwzEgp = egp; S.fwzSar = sar;   // store for FX change calc
+  const ts = d.date || '—';
   setP('usd', 'fawaz', egp,       2); setT('usd', 'fawaz', ts);
   setP('sar', 'fawaz', egp / sar, 4); setT('sar', 'fawaz', ts);
 }
 
-// Coinbase  →  Gold spot (XAU-USD)
-async function fetchCoinbase() {
-  const r = await fetch('https://api.coinbase.com/v2/prices/XAU-USD/spot', {
+// Yesterday's Fawaz rates for FX 24h change arrow
+async function fetchFawazYest() {
+  const d   = new Date(Date.now() - 86_400_000);
+  const ds  = d.toISOString().slice(0, 10);
+  const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${ds}/v1/currencies/usd.min.json`;
+  const r   = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data = await r.json();
+  const egp  = data.usd?.egp, sar = data.usd?.sar;
+  if (!egp || !sar) throw new Error('missing');
+  return { egp, sar };
+}
+
+// Coinbase spot price (no 24h change from this endpoint)
+async function fetchCoinbase(symbol, aid, key, dec) {
+  const r = await fetch(`https://api.coinbase.com/v2/prices/${symbol}/spot`, {
     signal: AbortSignal.timeout(10000),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = await r.json();
   const p = parseFloat(d?.data?.amount);
   if (!p || isNaN(p)) throw new Error('parse error');
-  setP('gold', 'coinbase', p, 2); setT('gold', 'coinbase', new Date());
+  setP(aid, key, p, dec);
+  setT(aid, key, new Date());   // Coinbase is always fresh — no staleness check
 }
 
-// Yahoo Finance  →  Brent (BZ=F) or WTI (CL=F)
-async function fetchYahoo(symbol, aid, key) {
+// Yahoo Finance — returns regularMarketChangePercent for arrow
+async function fetchYahoo(symbol, aid, key, dec) {
   const enc   = encodeURIComponent(symbol);
   const base  = `https://query1.finance.yahoo.com/v8/finance/chart/${enc}?interval=1m&range=1d`;
   const proxy = 'https://corsproxy.io/?' + encodeURIComponent(base);
@@ -372,77 +442,88 @@ async function fetchYahoo(symbol, aid, key) {
       const d    = await r.json();
       const meta = d?.chart?.result?.[0]?.meta;
       const p    = meta?.regularMarketPrice;
+      const pct  = meta?.regularMarketChangePercent ?? null;
       const ts   = meta?.regularMarketTime
         ? new Date(meta.regularMarketTime * 1000)
         : new Date();
       if (typeof p === 'number' && p > 0) {
-        setP(aid, key, p, 2); setT(aid, key, ts); return;
+        setP(aid, key, p, dec);
+        setT(aid, key, ts, true);   // staleness check ON — exchange timestamps are precise
+        return pct;
       }
     } catch { /* try next */ }
   }
   throw new Error('unavailable');
 }
 
-// ── Countdown timer ───────────────────────────────────────────────────────────
-const IV = 5 * 60 * 1000;
-let autoTimer, cdTimer, nextAt;
-
-function startCd() {
-  nextAt = Date.now() + IV;
-  clearInterval(cdTimer);
-  cdTimer = setInterval(() => {
-    const rem = Math.max(0, nextAt - Date.now());
-    const m = Math.floor(rem / 60000);
-    const s = Math.floor((rem % 60000) / 1000);
-    document.getElementById('cd').textContent =
-      `Auto-refresh in ${m}:${String(s).padStart(2, '0')}`;
-  }, 1000);
-}
-
 // ── Main refresh ──────────────────────────────────────────────────────────────
 async function refresh() {
   const btn = document.getElementById('rbtn');
   btn.disabled = true;
-  clearInterval(cdTimer);
-  document.getElementById('cd').textContent = '';
+  S.fwzEgp = null; S.fwzSar = null;
   ASSETS.forEach(a => a.rows.forEach(r => setLd(a.id, r.key)));
   document.getElementById('ts').textContent = 'Fetching…';
 
-  const [eraR, fwzR, cbR, goldYR, brR, wtiR] = await Promise.allSettled([
-    fetchERA(),
-    fetchFawaz(),
-    fetchCoinbase(),
-    fetchYahoo('GC=F', 'gold',  'yahoo'),
-    fetchYahoo('BZ=F', 'crude', 'brent'),
-    fetchYahoo('CL=F', 'crude', 'wti'),
-  ]);
+  const [eraR, fwzR, fwzYestR, cbXauR, goldYR, brR, wtiR, cbBtcR, btcYR] =
+    await Promise.allSettled([
+      fetchERA(),
+      fetchFawaz(),
+      fetchFawazYest(),
+      fetchCoinbase('XAU-USD', 'gold', 'coinbase', 2),
+      fetchYahoo('GC=F',     'gold',  'yahoo',   2),
+      fetchYahoo('BZ=F',     'crude', 'brent',   2),
+      fetchYahoo('CL=F',     'crude', 'wti',     2),
+      fetchCoinbase('BTC-USD', 'btc', 'coinbase', 0),
+      fetchYahoo('BTC-USD',  'btc',   'yahoo',   0),
+    ]);
 
-  if (eraR.status  === 'rejected') { setEr('usd','era','Error'); setEr('sar','era','Error'); }
-  if (fwzR.status  === 'rejected') { setEr('usd','fawaz','Error'); setEr('sar','fawaz','Error'); }
-  if (cbR.status   === 'rejected')  setEr('gold',  'coinbase', 'Unavailable');
-  if (goldYR.status === 'rejected') setEr('gold',  'yahoo',    'Unavailable');
-  if (brR.status   === 'rejected')  setEr('crude', 'brent',    'Unavailable');
-  if (wtiR.status  === 'rejected')  setEr('crude', 'wti',      'Unavailable');
+  // ── Error states ────────────────────────────────────────────────────────────
+  if (eraR.status   === 'rejected') { setEr('usd','era','Error'); setEr('sar','era','Error'); }
+  if (fwzR.status   === 'rejected') { setEr('usd','fawaz','Error'); setEr('sar','fawaz','Error'); }
+  if (cbXauR.status === 'rejected')  setEr('gold',  'coinbase', 'Unavailable');
+  if (goldYR.status === 'rejected')  setEr('gold',  'yahoo',    'Unavailable');
+  if (brR.status    === 'rejected')  setEr('crude', 'brent',    'Unavailable');
+  if (wtiR.status   === 'rejected')  setEr('crude', 'wti',      'Unavailable');
+  if (cbBtcR.status === 'rejected')  setEr('btc',   'coinbase', 'Unavailable');
+  if (btcYR.status  === 'rejected')  setEr('btc',   'yahoo',    'Unavailable');
 
+  // ── Arrows: Gold — share Yahoo GC=F change% with both rows ─────────────────
+  const goldPct = goldYR.status === 'fulfilled' ? goldYR.value : null;
+  setArrow('gold', 'coinbase', goldPct);
+  setArrow('gold', 'yahoo',    goldPct);
+
+  // ── Arrows: Crude — each has its own change% ────────────────────────────────
+  if (brR.status  === 'fulfilled') setArrow('crude', 'brent', brR.value);
+  if (wtiR.status === 'fulfilled') setArrow('crude', 'wti',   wtiR.value);
+
+  // ── Arrows: BTC — share Yahoo BTC-USD change% with both rows ───────────────
+  const btcPct = btcYR.status === 'fulfilled' ? btcYR.value : null;
+  setArrow('btc', 'coinbase', btcPct);
+  setArrow('btc', 'yahoo',    btcPct);
+
+  // ── Arrows: FX — compute from today vs yesterday Fawaz rates ───────────────
+  if (fwzR.status === 'fulfilled' && fwzYestR.status === 'fulfilled' && S.fwzEgp && S.fwzSar) {
+    const { egp: yEgp, sar: ySar } = fwzYestR.value;
+    const usdPct = (S.fwzEgp - yEgp)          / yEgp          * 100;
+    const sarPct = (S.fwzEgp / S.fwzSar - yEgp / ySar) / (yEgp / ySar) * 100;
+    setArrow('usd', 'era',   usdPct); setArrow('usd', 'fawaz', usdPct);
+    setArrow('sar', 'era',   sarPct); setArrow('sar', 'fawaz', sarPct);
+  }
+
+  // ── Header timestamp (GMT+3) ────────────────────────────────────────────────
   const now = new Date();
   document.getElementById('ts').textContent =
     'Updated ' + now.toLocaleString('en-US', {
+      timeZone: 'Asia/Riyadh',
       day: '2-digit', month: 'short',
       hour: '2-digit', minute: '2-digit', hour12: false,
-    });
+    }) + ' GMT+3';
 
   btn.disabled = false;
-  startCd();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
-document.getElementById('rbtn').addEventListener('click', () => {
-  clearInterval(autoTimer);
-  refresh();
-  autoTimer = setInterval(refresh, IV);
-});
-
-autoTimer = setInterval(refresh, IV);
+document.getElementById('rbtn').addEventListener('click', refresh);
 refresh();
 </script>
 
