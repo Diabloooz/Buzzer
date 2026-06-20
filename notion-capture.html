@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Inbox</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #f0f0f0;
+      --card:    #ffffff;
+      --border:  #e2e2e2;
+      --text:    #0a0a0a;
+      --sub:     #999999;
+      --blue:    #0066cc;
+      --red:     #cc2222;
+      --green:   #1a8a4a;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 14px 36px;
+    }
+
+    /* ── Page header ── */
+    .page-hdr {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(16px, 3vw, 22px);
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 6px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .page-sub {
+      font-size: 12px;
+      color: var(--sub);
+      letter-spacing: 1px;
+    }
+
+    /* ── Cards grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    @media (min-width: 560px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (min-width: 840px) {
+      .grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-hdr {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      background: #fafafa;
+    }
+
+    .card-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+    }
+
+    .card-desc {
+      font-size: 10px;
+      color: var(--sub);
+      margin-top: 2px;
+      letter-spacing: 0.5px;
+    }
+
+    .card-body {
+      padding: 14px 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: #fafafa;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.5;
+    }
+
+    textarea:focus { border-color: #aaa; background: #fff; }
+    textarea::placeholder { color: #bbb; }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .send-btn {
+      padding: 8px 20px;
+      background: #0a0a0a;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover:not(:disabled) { opacity: 0.7; }
+    .send-btn:disabled { opacity: 0.35; cursor: default; }
+
+    .status {
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status.ok  { color: var(--green); }
+    .status.err { color: var(--red); }
+    .status.ld  { color: var(--sub); }
+
+    /* ── Footer ── */
+    .foot {
+      margin-top: 20px;
+      font-size: 11px;
+      color: var(--sub);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .foot button {
+      background: none;
+      border: none;
+      font-size: 11px;
+      color: var(--blue);
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    /* ── Token overlay ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .overlay.hidden { display: none; }
+
+    .dialog {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px 24px;
+      width: min(460px, 100%);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+
+    .dialog h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .dialog p {
+      font-size: 13px;
+      color: var(--sub);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .dialog input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+      color: var(--text);
+      outline: none;
+      margin-bottom: 14px;
+      transition: border-color 0.15s;
+    }
+
+    .dialog input:focus { border-color: #aaa; }
+
+    .dialog-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dialog .primary-btn {
+      width: 100%;
+      padding: 11px;
+      background: #0a0a0a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .dialog .primary-btn:hover { opacity: 0.75; }
+
+    .dialog .help-link {
+      font-size: 11px;
+      color: var(--blue);
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .dialog .help-link:hover { text-decoration: underline; }
+
+    .token-err {
+      font-size: 11px;
+      color: var(--red);
+      margin-bottom: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Token setup overlay ── -->
+<div class="overlay" id="overlay">
+  <div class="dialog">
+    <h2>🔑 One-time setup</h2>
+    <p>Enter your Notion Integration Token. It's saved in your browser and never sent anywhere except Notion.</p>
+    <input type="password" id="token-input" placeholder="secret_xxxxxxxxxxxxxxxx" autocomplete="off" />
+    <p class="token-err" id="token-err">Token can't be empty.</p>
+    <div class="dialog-actions">
+      <button class="primary-btn" id="save-token-btn">Save &amp; Continue</button>
+      <a class="help-link" href="https://www.notion.so/my-integrations" target="_blank" rel="noopener">
+        Get your token → notion.so/my-integrations
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Page ── -->
+<div class="page-hdr">
+  <h1>Agent Inbox</h1>
+  <p class="page-sub">Send ideas directly to your agents — timestamped and ready to read</p>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="foot">
+  <span>Entries appear in each agent's Notion Inbox page</span>
+  <button id="reset-token-btn">🔑 Reset token</button>
+</div>
+
+<script>
+'use strict';
+
+const TOKEN_KEY = 'notion_token_v1';
+
+// ── Agent definitions ─────────────────────────────────────────────────────────
+const AGENTS = [
+  {
+    id:       'raid',
+    name:     '👔 Raid',
+    desc:     'Business & decisions agent',
+    pageId:   '38534ae8-2959-8134-9935-f9ec3890d6ea',
+    ph:       'New idea or context for Raid…',
+  },
+  {
+    id:       'maya',
+    name:     '💧 Maya',
+    desc:     'Cash flow & finance agent',
+    pageId:   '38534ae8-2959-81c9-a0f4-d5a10cdea84c',
+    ph:       'New idea or context for Maya…',
+  },
+  {
+    id:       'rafiq',
+    name:     '🧭 Rafiq',
+    desc:     'Closure coach & idea partner',
+    pageId:   '38534ae8-2959-819c-89ea-d41be6cbb7a4',
+    ph:       'New idea or context for Rafiq…',
+  },
+];
+
+// ── Build cards ───────────────────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+
+AGENTS.forEach(agent => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-hdr">
+      <div class="card-name">${agent.name}</div>
+      <div class="card-desc">${agent.desc}</div>
+    </div>
+    <div class="card-body">
+      <textarea id="ta-${agent.id}" placeholder="${agent.ph}"></textarea>
+      <div class="card-footer">
+        <button class="send-btn" id="btn-${agent.id}">Send</button>
+        <span class="status" id="st-${agent.id}"></span>
+      </div>
+    </div>
+  `;
+  grid.appendChild(card);
+
+  document.getElementById(`btn-${agent.id}`)
+    .addEventListener('click', () => submitToNotion(agent));
+});
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function submitToNotion(agent) {
+  const ta  = document.getElementById(`ta-${agent.id}`);
+  const btn = document.getElementById(`btn-${agent.id}`);
+  const st  = document.getElementById(`st-${agent.id}`);
+  const text = ta.value.trim();
+
+  if (!text) {
+    st.className = 'status err'; st.textContent = 'Type something first.'; return;
+  }
+
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) { showOverlay(); return; }
+
+  btn.disabled = true;
+  st.className = 'status ld'; st.textContent = 'Sending…';
+
+  const now = new Date();
+  const ts  = now.toLocaleString('en-US', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).replace(',', '');
+
+  const notionUrl = `https://api.notion.com/v1/blocks/${agent.pageId}/children`;
+  const proxyUrl  = 'https://corsproxy.io/?' + encodeURIComponent(notionUrl);
+
+  const body = {
+    children: [{
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [{
+          type: 'text',
+          text: { content: `[${ts}]  ${text}` },
+        }],
+      },
+    }],
+  };
+
+  try {
+    const r = await fetch(proxyUrl, {
+      method: 'PATCH',
+      headers: {
+        'Authorization':  `Bearer ${token}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type':   'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (r.status === 401) {
+      st.className = 'status err';
+      st.textContent = 'Invalid token — reset it below.';
+      btn.disabled = false;
+      return;
+    }
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${r.status}`);
+    }
+
+    ta.value = '';
+    st.className = 'status ok';
+    st.textContent = '✓ Sent to Notion';
+    setTimeout(() => { st.textContent = ''; }, 4000);
+
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = e.message.length > 48 ? 'Error — check token or connection.' : e.message;
+  }
+
+  btn.disabled = false;
+}
+
+// ── Token overlay logic ───────────────────────────────────────────────────────
+const overlay = document.getElementById('overlay');
+
+function showOverlay() { overlay.classList.remove('hidden'); }
+function hideOverlay() { overlay.classList.add('hidden'); }
+
+document.getElementById('save-token-btn').addEventListener('click', () => {
+  const val = document.getElementById('token-input').value.trim();
+  const errEl = document.getElementById('token-err');
+  if (!val) { errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  localStorage.setItem(TOKEN_KEY, val);
+  hideOverlay();
+});
+
+document.getElementById('token-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('save-token-btn').click();
+});
+
+document.getElementById('reset-token-btn').addEventListener('click', () => {
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById('token-input').value = '';
+  showOverlay();
+});
+
+// ── Boot: show overlay if no token ───────────────────────────────────────────
+if (!localStorage.getItem(TOKEN_KEY)) {
+  showOverlay();
+} else {
+  hideOverlay();
+}
+</script>
+
+</body>
+</html>
