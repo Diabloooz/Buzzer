@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=pi
-WorkingDirectory=/home/pi/buzzer
-ExecStart=/usr/bin/python3 /home/pi/buzzer/fetch.py --gold
+WorkingDirectory=/home/pi/buzzer/pi
+ExecStart=/usr/bin/python3 /home/pi/buzzer/pi/fetch.py --gold
 StandardOutput=journal
 StandardError=journal

@@ -1,47 +1,49 @@
 #!/bin/bash
 # Buzzer Pi — one-shot setup script
-# Run as pi user: bash setup.sh
-# You will be prompted for your API keys.
+# Run from /home/pi/buzzer/pi/: bash setup.sh
 
 set -e
-BUZZER_DIR="/home/pi/buzzer"
-REPO="https://github.com/diabloooz/buzzer"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="$SCRIPT_DIR/.env"
 
 echo ""
 echo "=== Buzzer Pi Setup ==="
+echo "    Working from: $SCRIPT_DIR"
 echo ""
 
 # ── 1. Install dependencies ───────────────────────────────────────────────────
 echo "[1/6] Installing Python dependencies..."
 pip3 install --quiet requests
+echo "      requests installed."
 
 # ── 2. API keys ───────────────────────────────────────────────────────────────
 echo ""
 echo "[2/6] API Key Setup"
-echo "      (keys are stored locally in .env — never sent anywhere)"
-echo ""
 
-if [ -f "$BUZZER_DIR/.env" ]; then
+if [ -f "$ENV_FILE" ]; then
   echo "      .env already exists — skipping (delete it to re-enter keys)"
 else
   read -rp "      GoldAPI.io key   : " GOLDAPI_KEY
   read -rp "      API-Ninjas key   : " APININJAS_KEY
-  cat > "$BUZZER_DIR/.env" <<EOF
+  cat > "$ENV_FILE" <<EOF
 GOLDAPI_KEY=${GOLDAPI_KEY}
 APININJAS_KEY=${APININJAS_KEY}
 EOF
+  chmod 600 "$ENV_FILE"
   echo "      .env written."
 fi
 
 # ── 3. Install systemd services ───────────────────────────────────────────────
 echo ""
 echo "[3/6] Installing systemd services..."
-sudo cp "$BUZZER_DIR/systemd/"*.service /etc/systemd/system/
-sudo cp "$BUZZER_DIR/systemd/"*.timer   /etc/systemd/system/
+sudo cp "$SCRIPT_DIR/systemd/"*.service /etc/systemd/system/
+sudo cp "$SCRIPT_DIR/systemd/"*.timer   /etc/systemd/system/
 sudo systemctl daemon-reload
+echo "      Services installed."
 
 # ── 4. Enable & start services ────────────────────────────────────────────────
-echo "[4/6] Enabling services..."
+echo ""
+echo "[4/6] Enabling and starting services..."
 sudo systemctl enable buzzer-server.service
 sudo systemctl enable buzzer-fetch.timer
 sudo systemctl enable buzzer-gold.timer
@@ -50,9 +52,9 @@ sudo systemctl start  buzzer-fetch.timer
 sudo systemctl start  buzzer-gold.timer
 echo "      Services enabled and started."
 
-# ── 5. Firewall (UFW) ─────────────────────────────────────────────────────────
+# ── 5. Firewall ───────────────────────────────────────────────────────────────
 echo ""
-echo "[5/6] Configuring firewall (SSH via Tailscale only)..."
+echo "[5/6] Configuring firewall (SSH + dashboard via Tailscale only)..."
 sudo apt-get install -y ufw -q
 sudo ufw allow in on tailscale0 to any port 22
 sudo ufw allow in on tailscale0 to any port 8080
@@ -64,20 +66,19 @@ echo "      Firewall configured."
 # ── 6. Initial fetch ──────────────────────────────────────────────────────────
 echo ""
 echo "[6/6] Running initial fetch..."
-cd "$BUZZER_DIR"
-python3 fetch.py && echo "      FX + Crude fetch OK" || echo "      FX + Crude fetch FAILED (check .env keys)"
-python3 fetch.py --gold && echo "      Gold fetch OK" || echo "      Gold fetch FAILED (check GoldAPI key)"
+cd "$SCRIPT_DIR"
+python3 fetch.py && echo "      FX + Crude fetch OK" || echo "      FX + Crude fetch FAILED — check .env keys"
+python3 fetch.py --gold && echo "      Gold fetch OK" || echo "      Gold fetch FAILED — check GoldAPI key"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
+TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "check tailscale.com/admin")
 echo ""
-TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "unknown — check tailscale.com/admin")
 echo "======================================================"
 echo " Setup complete!"
 echo " Dashboard : http://${TAILSCALE_IP}:8080/"
 echo " Control   : http://${TAILSCALE_IP}:8080/control"
 echo " SSH       : ssh pi@${TAILSCALE_IP}"
 echo ""
-echo " IMPORTANT: Go to tailscale.com/admin → Machines"
+echo " IMPORTANT: tailscale.com/admin → Machines"
 echo "            → buzzer-pi → Disable key expiry"
 echo "======================================================"
-echo ""

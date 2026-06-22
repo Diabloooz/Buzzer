@@ -77,7 +77,8 @@ Then start a Claude Code session and provide this README path:
 ## Deploy Updates from GitHub
 
 ```bash
-cd /home/pi/buzzer
-git pull
+cd /home/pi/buzzer && git pull
 sudo systemctl restart buzzer-server
 ```
+
+> Repo cloned at `/home/pi/buzzer/` — Pi files live in `/home/pi/buzzer/pi/`
