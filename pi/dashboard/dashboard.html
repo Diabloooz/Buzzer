@@ -249,7 +249,7 @@ const CARDS = [
   { id: 'usd',   name: 'USD / EGP',   unit: 'EGP per 1 USD',    key: 'usd_egp',   dec: 2, tsKey: 'fetched_at' },
   { id: 'sar',   name: 'SAR / EGP',   unit: 'EGP per 1 SAR',    key: 'sar_egp',   dec: 4, tsKey: 'fetched_at' },
   { id: 'gold',  name: 'Gold',         unit: 'USD / troy oz',     key: 'xau_usd',   dec: 2, tsKey: 'gold_fetched_at' },
-  { id: 'crude', name: 'Brent Crude',  unit: 'USD / barrel',      key: 'brent_usd', dec: 2, tsKey: 'fetched_at' },
+  { id: 'crude', name: 'Crude Oil',    unit: 'USD / barrel · WTI', key: 'brent_usd', dec: 2, tsKey: 'fetched_at' },
 ];
 
 const grid = document.getElementById('grid');
@@ -267,7 +267,7 @@ CARDS.forEach(c => {
          <span class="rrow-price ld" id="p-${c.id}">···</span>
        </div>
        <div class="rrow-right">
-         <span class="rrow-src">${c.id === 'gold' ? 'GoldAPI.io' : c.id === 'crude' ? 'API-Ninjas · Brent' : 'FloatRates'}</span>
+         <span class="rrow-src">${c.id === 'gold' ? 'GoldAPI.io' : c.id === 'crude' ? 'API-Ninjas · WTI' : 'FloatRates'}</span>
          <span class="rrow-time"  id="t-${c.id}">—</span>
          <span class="rrow-stale" id="s-${c.id}"></span>
        </div>

@@ -94,16 +94,16 @@ def fetch_floatrates():
 
 
 def fetch_brent():
-    """Brent crude from API-Ninjas (free tier, 10k req/month)."""
+    """WTI crude from API-Ninjas (free tier). Brent is premium-only on free tier."""
     key = os.environ.get("APININJAS_KEY")
     if not key:
         raise RuntimeError("APININJAS_KEY not set")
-    url = "https://api.api-ninjas.com/v1/commodityprice?name=brent%20crude%20oil"
+    url = "https://api.api-ninjas.com/v1/commodityprice?name=crude_oil"
     r = requests.get(url, headers={"X-Api-Key": key}, timeout=TIMEOUT)
     r.raise_for_status()
     d = r.json()
     price = float(d["price"])
-    log.info(f"API-Ninjas  Brent={price:.2f}")
+    log.info(f"API-Ninjas  WTI Crude={price:.2f}")
     return price
 
 
