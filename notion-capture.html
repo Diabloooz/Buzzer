@@ -178,6 +178,22 @@
       justify-content: center;
     }
 
+    .new-chat-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border: 1.5px solid #555;
+      border-radius: 8px;
+      background: #fff;
+      color: #222;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .new-chat-btn:hover { background: #f0f0f0; }
+
     .foot button {
       background: none;
       border: none;
@@ -305,6 +321,7 @@
 <div class="grid" id="grid"></div>
 
 <div class="foot">
+  <button class="new-chat-btn" onclick="window.open('https://claude.ai/new','_blank')">💬 New Claude Chat</button>
   <span>Entries appear in each agent's Notion Inbox page</span>
   <button id="reset-token-btn">🔑 Reset token</button>
 </div>
