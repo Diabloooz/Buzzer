@@ -534,7 +534,7 @@ async function fetchUnreadCount(agent) {
     const data = await r.json();
     const blocks = data.results || [];
     const dividerIndex = blocks.findIndex(b => b.type === 'divider');
-    const slice = dividerIndex !== -1 ? blocks.slice(dividerIndex + 1) : blocks;
+    const slice = dividerIndex !== -1 ? blocks.slice(dividerIndex + 1) : [];
     count += slice.filter(b => b.type === 'paragraph').length;
     cursor = data.has_more ? data.next_cursor : undefined;
   } while (cursor);
