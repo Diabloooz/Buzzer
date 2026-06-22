@@ -532,7 +532,10 @@ async function fetchUnreadCount(agent) {
     if (!r.ok) return null;
 
     const data = await r.json();
-    count += (data.results || []).filter(b => b.type === 'paragraph').length;
+    const blocks = data.results || [];
+    const dividerIndex = blocks.findIndex(b => b.type === 'divider');
+    const slice = dividerIndex !== -1 ? blocks.slice(dividerIndex + 1) : blocks;
+    count += slice.filter(b => b.type === 'paragraph').length;
     cursor = data.has_more ? data.next_cursor : undefined;
   } while (cursor);
 
