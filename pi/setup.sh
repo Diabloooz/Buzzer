@@ -13,8 +13,8 @@ echo ""
 
 # ── 1. Install dependencies ───────────────────────────────────────────────────
 echo "[1/6] Installing Python dependencies..."
-pip3 install --quiet requests
-echo "      requests installed."
+sudo apt-get install -y python3-requests -q
+echo "      python3-requests installed."
 
 # ── 2. API keys ───────────────────────────────────────────────────────────────
 echo ""
