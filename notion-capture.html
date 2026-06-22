@@ -535,7 +535,7 @@ async function fetchUnreadCount(agent) {
     const blocks = data.results || [];
     const dividerIndex = blocks.findIndex(b => b.type === 'divider');
     const slice = dividerIndex !== -1 ? blocks.slice(dividerIndex + 1) : [];
-    count += slice.filter(b => b.type === 'paragraph').length;
+    count += Math.max(0, slice.filter(b => b.type === 'paragraph').length - 1);
     cursor = data.has_more ? data.next_cursor : undefined;
   } while (cursor);
 
