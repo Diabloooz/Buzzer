@@ -141,15 +141,17 @@ def run_rates():
         errors.append(f"Brent: {e}")
         log.error(f"Brent FAILED: {e}")
 
-    if usd_egp is None or brent is None:
-        log.error("Fetch incomplete — data.json NOT updated")
+    # FX rates are critical — abort if missing
+    if usd_egp is None:
+        log.error("FX fetch failed — data.json NOT updated")
         sys.exit(1)
 
     data = {
         "fetched_at":      now_iso(),
         "usd_egp":         round(usd_egp, 4),
         "sar_egp":         round(sar_egp, 4),
-        "brent_usd":       round(brent, 2),
+        # Crude: use new value if fetched, else preserve last known
+        "brent_usd":       round(brent, 2) if brent is not None else existing.get("brent_usd"),
         # Preserve gold from last successful gold fetch
         "xau_usd":         existing.get("xau_usd"),
         "gold_fetched_at": existing.get("gold_fetched_at"),
