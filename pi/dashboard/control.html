@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buzzer Control Panel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #0d0d0d;
+      --card:   #1a1a1a;
+      --border: #2a2a2a;
+      --text:   #e8e8e8;
+      --sub:    #888;
+      --green:  #39ff14;
+      --amber:  #ffaa00;
+      --red:    #ff3333;
+      --blue:   #4af;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 14px 30px;
+      gap: 14px;
+    }
+
+    header {
+      text-align: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      width: 100%;
+      max-width: 680px;
+    }
+
+    h1 {
+      font-size: clamp(12px, 3vw, 16px);
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: var(--green);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sub {
+      font-size: 10px;
+      color: var(--sub);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .card-title {
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--sub);
+      margin-bottom: 12px;
+    }
+
+    /* Status grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 500px) {
+      .status-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--sub);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .stat-val {
+      font-size: clamp(11px, 2.5vw, 14px);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-val.ok    { color: var(--green); }
+    .stat-val.warn  { color: var(--amber); }
+    .stat-val.error { color: var(--red); }
+
+    /* Actions */
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    button {
+      padding: 10px 22px;
+      background: transparent;
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    button:hover:not(:disabled) { background: var(--green); color: #000; }
+    button:disabled { opacity: 0.3; cursor: default; }
+
+    #fetch-status {
+      font-size: 10px;
+      color: var(--sub);
+      letter-spacing: 1px;
+      align-self: center;
+      min-height: 16px;
+    }
+
+    /* Log viewer */
+    #log-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 10px;
+      line-height: 1.6;
+      color: #aaa;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 340px;
+      overflow-y: auto;
+      min-height: 60px;
+    }
+
+    .log-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #auto-refresh-label {
+      font-size: 9px;
+      color: var(--sub);
+      letter-spacing: 1px;
+    }
+
+    #auto-refresh-label.on { color: var(--green); }
+
+    a.back {
+      font-size: 10px;
+      color: var(--sub);
+      letter-spacing: 2px;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+    a.back:hover { color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Buzzer Control</h1>
+  <p class="sub">Buzzer Pi · Market Data Server</p>
+</header>
+
+<!-- Status -->
+<div class="card">
+  <div class="card-title">System Status</div>
+  <div class="status-grid">
+    <div class="stat">
+      <div class="stat-label">Server</div>
+      <div class="stat-val ok" id="stat-server">Online</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Last Fetch</div>
+      <div class="stat-val" id="stat-time">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Data Age</div>
+      <div class="stat-val" id="stat-age">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Gold Age</div>
+      <div class="stat-val" id="stat-gold-age">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="card">
+  <div class="card-title">Actions</div>
+  <div class="actions">
+    <button id="fetch-btn">↻ Fetch Now</button>
+    <button id="dash-btn" onclick="window.location='/'">→ Dashboard</button>
+    <span id="fetch-status"></span>
+  </div>
+</div>
+
+<!-- Logs -->
+<div class="card">
+  <div class="card-title">Fetch Log</div>
+  <div class="log-controls">
+    <button id="log-btn" style="padding:6px 14px;font-size:9px">↻ Refresh Log</button>
+    <span id="auto-refresh-label">Auto-refresh: off</span>
+  </div>
+  <div id="log-box">Loading…</div>
+</div>
+
+<a class="back" href="/">← Back to Dashboard</a>
+
+<script>
+'use strict';
+
+let autoRefreshTimer = null;
+
+function fmtAge(seconds) {
+  if (seconds == null) return '—';
+  if (seconds < 60)   return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  return `${Math.round(seconds / 3600)}h`;
+}
+
+function fmtTime(isoStr) {
+  if (!isoStr) return '—';
+  return new Date(isoStr).toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Riyadh', hour12: false,
+    hour: '2-digit', minute: '2-digit',
+  }) + ' GMT+3';
+}
+
+async function loadStatus() {
+  try {
+    const r = await fetch('/status', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+
+    document.getElementById('stat-server').textContent = 'Online';
+    document.getElementById('stat-server').className   = 'stat-val ok';
+    document.getElementById('stat-time').textContent   = fmtTime(d.fetched_at);
+
+    const age = d.age_seconds;
+    const ageEl = document.getElementById('stat-age');
+    ageEl.textContent = fmtAge(age);
+    ageEl.className   = 'stat-val ' + (age == null ? '' : age < 3600 ? 'ok' : 'warn');
+
+    // Gold age — compute from gold_fetched_at
+    const goldEl = document.getElementById('stat-gold-age');
+    if (d.gold_fetched_at) {
+      const goldAge = (Date.now() - new Date(d.gold_fetched_at).getTime()) / 1000;
+      goldEl.textContent = fmtAge(Math.round(goldAge));
+      goldEl.className   = 'stat-val ' + (goldAge < 21600 ? 'ok' : 'warn'); // 6h
+    } else {
+      goldEl.textContent = 'no data';
+      goldEl.className   = 'stat-val warn';
+    }
+  } catch {
+    document.getElementById('stat-server').textContent = 'Offline?';
+    document.getElementById('stat-server').className   = 'stat-val error';
+  }
+}
+
+async function loadLogs() {
+  try {
+    const r = await fetch('/logs', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    const t = await r.text();
+    const box = document.getElementById('log-box');
+    box.textContent = t || '(no log entries yet)';
+    box.scrollTop   = box.scrollHeight;
+  } catch {
+    document.getElementById('log-box').textContent = 'Could not load logs.';
+  }
+}
+
+document.getElementById('fetch-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('fetch-btn');
+  const status = document.getElementById('fetch-status');
+  btn.disabled = true;
+  status.textContent = 'Triggering…';
+  try {
+    const r = await fetch('/fetch', { method: 'POST', signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    status.textContent = d.ok ? 'Fetch started ✓' : `Error: ${d.error}`;
+    // Reload status + logs after a short delay to let fetch run
+    setTimeout(() => { loadStatus(); loadLogs(); }, 4000);
+  } catch {
+    status.textContent = 'Request failed';
+  }
+  setTimeout(() => { btn.disabled = false; status.textContent = ''; }, 6000);
+});
+
+document.getElementById('log-btn').addEventListener('click', () => {
+  loadLogs();
+  // Toggle auto-refresh
+  const label = document.getElementById('auto-refresh-label');
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+    label.textContent = 'Auto-refresh: off';
+    label.className   = 'off';
+  } else {
+    autoRefreshTimer = setInterval(() => { loadLogs(); loadStatus(); }, 30000);
+    label.textContent = 'Auto-refresh: 30s';
+    label.className   = 'on';
+  }
+});
+
+// Boot
+loadStatus();
+loadLogs();
+// Auto-refresh status every 60s
+setInterval(loadStatus, 60000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Market Rates</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #f0f0f0;
+      --card:    #ffffff;
+      --border:  #e2e2e2;
+      --divider: #f4f4f4;
+      --text:    #0a0a0a;
+      --sub:     #555555;
+      --red:     #cc2222;
+      --green:   #1a8a4a;
+      --blue:    #0066cc;
+      --amber:   #b85c00;
+      --hdr:     #fafafa;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 12px 18px;
+    }
+
+    .page-hdr { text-align: center; margin-bottom: 12px; }
+
+    h1 {
+      font-size: clamp(13px, 3vw, 19px);
+      letter-spacing: 7px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    #ts {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--sub);
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+    }
+
+    #stale-banner {
+      display: none;
+      margin-top: 6px;
+      padding: 5px 14px;
+      background: #fff3e0;
+      border: 1px solid #f0a040;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--amber);
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    @media (min-width: 560px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .card-hdr {
+      background: var(--hdr);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-name {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+    }
+
+    .card-unit {
+      font-size: 11px;
+      color: var(--sub);
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .rrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 13px;
+      min-height: 56px;
+      gap: 8px;
+    }
+
+    .rrow-left {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .rrow-price {
+      font-size: clamp(22px, 5vw, 30px);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      line-height: 1;
+      font-family: 'Courier New', monospace;
+      color: var(--text);
+    }
+
+    .rrow-price.ld {
+      font-size: 14px;
+      color: #ccc;
+      font-weight: 400;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .rrow-price.stale { color: var(--amber); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.25; }
+      50%       { opacity: 1; }
+    }
+
+    .rrow-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .rrow-src {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--blue);
+      white-space: nowrap;
+    }
+
+    .rrow-time {
+      display: block;
+      font-size: 11px;
+      color: var(--sub);
+      margin-top: 2px;
+      font-family: 'Courier New', monospace;
+      white-space: nowrap;
+    }
+
+    .rrow-stale {
+      display: block;
+      font-size: 9px;
+      color: var(--amber);
+      margin-top: 1px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .foot { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+
+    button {
+      padding: 8px 28px;
+      background: #0a0a0a;
+      border: none;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover:not(:disabled) { opacity: 0.7; }
+    button:disabled { opacity: 0.3; cursor: default; }
+
+    #ctrl-link {
+      font-size: 10px;
+      color: var(--sub);
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      text-decoration: none;
+    }
+    #ctrl-link:hover { color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <h1>Live Market Rates</h1>
+  <p id="ts">Loading…</p>
+  <div id="stale-banner">⚠ DATA IS STALE — LAST KNOWN VALUES SHOWN</div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="foot">
+  <button id="rbtn">↻ Refresh</button>
+  <a id="ctrl-link" href="/control">control panel →</a>
+</div>
+
+<script>
+'use strict';
+
+function fmtTime(isoStr) {
+  const d = new Date(isoStr);
+  return d.toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Riyadh',
+    hour12: false, hour: '2-digit', minute: '2-digit',
+  }) + ' GMT+3';
+}
+
+function ageHours(isoStr) {
+  return (Date.now() - new Date(isoStr).getTime()) / 3_600_000;
+}
+
+function fmt(val, dec) {
+  return Number(val).toLocaleString('en-US', {
+    minimumFractionDigits: dec, maximumFractionDigits: dec,
+  });
+}
+
+const CARDS = [
+  { id: 'usd',   name: 'USD / EGP',   unit: 'EGP per 1 USD',    key: 'usd_egp',   dec: 2, tsKey: 'fetched_at' },
+  { id: 'sar',   name: 'SAR / EGP',   unit: 'EGP per 1 SAR',    key: 'sar_egp',   dec: 4, tsKey: 'fetched_at' },
+  { id: 'gold',  name: 'Gold',         unit: 'USD / troy oz',     key: 'xau_usd',   dec: 2, tsKey: 'gold_fetched_at' },
+  { id: 'crude', name: 'Brent Crude',  unit: 'USD / barrel',      key: 'brent_usd', dec: 2, tsKey: 'fetched_at' },
+];
+
+const grid = document.getElementById('grid');
+
+CARDS.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML =
+    `<div class="card-hdr">
+       <span class="card-name">${c.name}</span>
+       <span class="card-unit">${c.unit}</span>
+     </div>
+     <div class="rrow">
+       <div class="rrow-left">
+         <span class="rrow-price ld" id="p-${c.id}">···</span>
+       </div>
+       <div class="rrow-right">
+         <span class="rrow-src">${c.id === 'gold' ? 'GoldAPI.io' : c.id === 'crude' ? 'API-Ninjas · Brent' : 'FloatRates'}</span>
+         <span class="rrow-time"  id="t-${c.id}">—</span>
+         <span class="rrow-stale" id="s-${c.id}"></span>
+       </div>
+     </div>`;
+  grid.appendChild(card);
+});
+
+async function refresh() {
+  const btn = document.getElementById('rbtn');
+  btn.disabled = true;
+  document.getElementById('ts').textContent = 'Loading…';
+
+  // Reset to loading state
+  CARDS.forEach(c => {
+    const p = document.getElementById(`p-${c.id}`);
+    p.className = 'rrow-price ld'; p.textContent = '···';
+    document.getElementById(`t-${c.id}`).textContent = '—';
+    document.getElementById(`s-${c.id}`).textContent = '';
+  });
+
+  try {
+    const r = await fetch('/data.json', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+
+    // Main data age check (for stale banner)
+    const mainAge = d.fetched_at ? ageHours(d.fetched_at) : 999;
+    const stale   = mainAge >= 1;
+    document.getElementById('stale-banner').style.display = stale ? 'block' : 'none';
+
+    CARDS.forEach(c => {
+      const val = d[c.key];
+      const ts  = d[c.tsKey];
+      const p   = document.getElementById(`p-${c.id}`);
+      const t   = document.getElementById(`t-${c.id}`);
+      const s   = document.getElementById(`s-${c.id}`);
+
+      if (val == null) {
+        p.className = 'rrow-price ld'; p.textContent = '—';
+        t.textContent = 'no data yet';
+        return;
+      }
+
+      const age = ts ? ageHours(ts) : 0;
+      p.className = 'rrow-price' + (age >= 1 ? ' stale' : '');
+      p.textContent = fmt(val, c.dec);
+      t.textContent = ts ? fmtTime(ts) : '—';
+      s.textContent = age >= 1 ? `${Math.round(age)}h old` : '';
+    });
+
+    // Header timestamp
+    if (d.fetched_at) {
+      document.getElementById('ts').textContent =
+        'Updated ' + new Date(d.fetched_at).toLocaleString('en-US', {
+          timeZone: 'Asia/Riyadh',
+          day: '2-digit', month: 'short',
+          hour: '2-digit', minute: '2-digit', hour12: false,
+        }) + ' GMT+3';
+    }
+
+  } catch (e) {
+    document.getElementById('ts').textContent = 'Could not reach Pi';
+    document.getElementById('stale-banner').style.display = 'block';
+    document.getElementById('stale-banner').textContent = '⚠ CANNOT REACH SERVER — SHOWING LAST KNOWN VALUES';
+    CARDS.forEach(c => {
+      const p = document.getElementById(`p-${c.id}`);
+      p.className = 'rrow-price ld'; p.textContent = '—';
+    });
+  }
+
+  btn.disabled = false;
+}
+
+document.getElementById('rbtn').addEventListener('click', refresh);
+refresh();
+// Auto-refresh every 5 minutes
+setInterval(refresh, 5 * 60 * 1000);
+</script>
+
+</body>
+</html>

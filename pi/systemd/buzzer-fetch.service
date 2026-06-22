@@ -1,0 +1,12 @@
+[Unit]
+Description=Buzzer Pi Market Rate Fetch (FX + Crude)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/buzzer
+ExecStart=/usr/bin/python3 /home/pi/buzzer/fetch.py
+StandardOutput=journal
+StandardError=journal

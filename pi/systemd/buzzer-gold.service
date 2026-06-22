@@ -1,0 +1,12 @@
+[Unit]
+Description=Buzzer Pi Gold Price Fetch
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/buzzer
+ExecStart=/usr/bin/python3 /home/pi/buzzer/fetch.py --gold
+StandardOutput=journal
+StandardError=journal

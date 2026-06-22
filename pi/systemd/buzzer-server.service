@@ -1,0 +1,17 @@
+[Unit]
+Description=Buzzer Pi Web Server
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/buzzer
+ExecStart=/usr/bin/python3 /home/pi/buzzer/server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
