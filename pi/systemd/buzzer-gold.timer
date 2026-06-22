@@ -4,7 +4,7 @@ Requires=buzzer-gold.service
 
 [Timer]
 OnBootSec=90
-OnUnitActiveSec=6h
+OnUnitActiveSec=8h
 AccuracySec=1min
 Persistent=true
 

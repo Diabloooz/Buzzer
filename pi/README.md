@@ -59,7 +59,7 @@ sudo systemctl restart buzzer-server
 | USD/EGP | floatrates.com (free, no auth) | Every 30 min |
 | SAR/EGP | Computed: USD/EGP ÷ 3.75 | Every 30 min |
 | Brent Crude | API-Ninjas (api-ninjas.com) | Every 30 min |
-| Gold XAU/USD | GoldAPI.io (100 req/month limit) | Every 6 hours |
+| Gold XAU/USD | GoldAPI.io (100 req/month limit) | Every 8 hours |
 
 ---
 

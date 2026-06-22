@@ -272,7 +272,7 @@ async function loadStatus() {
     if (d.gold_fetched_at) {
       const goldAge = (Date.now() - new Date(d.gold_fetched_at).getTime()) / 1000;
       goldEl.textContent = fmtAge(Math.round(goldAge));
-      goldEl.className   = 'stat-val ' + (goldAge < 21600 ? 'ok' : 'warn'); // 6h
+      goldEl.className   = 'stat-val ' + (goldAge < 28800 ? 'ok' : 'warn'); // 8h
     } else {
       goldEl.textContent = 'no data';
       goldEl.className   = 'stat-val warn';
