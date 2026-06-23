@@ -240,17 +240,17 @@
 // ── Asset definitions ─────────────────────────────────────────────────────────
 const ASSETS = [
   {
-    id: 'usd', name: 'USD / EGP', unit: 'EGP per 1 USD', dec: 2,
+    id: 'usd', name: 'USD / EGP', unit: 'EGP per 1 USD', dec: 4,
     rows: [
-      { key: 'yahoo',      src: 'Yahoo Finance · FX', href: 'https://finance.yahoo.com/quote/USDEGP=X/' },
-      { key: 'floatrates', src: 'FloatRates',          href: 'https://www.floatrates.com' },
+      { key: 'floatrates', src: 'FloatRates',            href: 'https://www.floatrates.com' },
+      { key: 'openex',     src: 'Open Exchange Rates',   href: 'https://open.er-api.com' },
     ]
   },
   {
     id: 'sar', name: 'SAR / EGP', unit: 'EGP per 1 SAR', dec: 4,
     rows: [
-      { key: 'yahoo',      src: 'Yahoo Finance · FX', href: 'https://finance.yahoo.com/quote/SAREGP=X/' },
-      { key: 'floatrates', src: 'FloatRates',          href: 'https://www.floatrates.com' },
+      { key: 'floatrates', src: 'FloatRates',            href: 'https://www.floatrates.com' },
+      { key: 'openex',     src: 'Open Exchange Rates',   href: 'https://open.er-api.com' },
     ]
   },
   {
@@ -316,7 +316,7 @@ function fmtTime(date) {
 function setP(aid, key, val, dec) {
   const el = document.getElementById(`p-${aid}-${key}`);
   el.className = 'rrow-price';
-  el.textContent = val.toLocaleString('en-US', {
+  el.textContent = Number(val).toLocaleString('en-US', {
     minimumFractionDigits: dec, maximumFractionDigits: dec,
   });
 }
@@ -374,16 +374,43 @@ async function fetchFloatRates() {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
       if (!r.ok) continue;
-      const d   = await r.json();
-      const egp = d?.egp?.rate, sar = d?.sar?.rate;
+      const d      = await r.json();
+      const egp    = parseFloat(d?.egp?.rate);
+      const sar    = parseFloat(d?.sar?.rate);
       if (!egp || !sar) throw new Error('missing');
-      const ts = d.egp?.date ? new Date(d.egp.date) : new Date();
-      setP('usd', 'floatrates', egp,       2); setT('usd', 'floatrates', ts);
-      setP('sar', 'floatrates', egp / sar, 4); setT('sar', 'floatrates', ts);
-      return;
+      const ts     = d.egp?.date ? new Date(d.egp.date) : new Date();
+      const sarEgp = egp / sar;
+      setP('usd', 'floatrates', egp,    4); setT('usd', 'floatrates', ts);
+      setP('sar', 'floatrates', sarEgp, 4); setT('sar', 'floatrates', ts);
+      return { egp, sarEgp };
     } catch { /* try next */ }
   }
   throw new Error('unavailable');
+}
+
+// Open Exchange Rates — free, no auth, replaces Yahoo FX
+async function fetchOpenER() {
+  const r = await fetch('https://open.er-api.com/v6/latest/USD', {
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d      = await r.json();
+  const egp    = parseFloat(d.rates?.EGP);
+  const sar    = parseFloat(d.rates?.SAR);
+  if (!egp || !sar) throw new Error('missing rates');
+  const sarEgp = egp / sar;
+  const ts     = new Date(d.time_last_update_unix * 1000);
+  setP('usd', 'openex', egp,    4); setT('usd', 'openex', ts);
+  setP('sar', 'openex', sarEgp, 4); setT('sar', 'openex', ts);
+  return { egp, sarEgp };
+}
+
+// FX arrow from localStorage — compare current vs previous fetch
+function fxArrow(storageKey, currentVal) {
+  const prev = parseFloat(localStorage.getItem(storageKey) || '0');
+  localStorage.setItem(storageKey, String(currentVal));
+  if (!prev || isNaN(prev)) return null;
+  return ((currentVal - prev) / prev) * 100;
 }
 
 // Coinbase spot price (no 24h change from this endpoint)
@@ -432,11 +459,10 @@ async function refresh() {
   ASSETS.forEach(a => a.rows.forEach(r => setLd(a.id, r.key)));
   document.getElementById('ts').textContent = 'Fetching…';
 
-  const [usdYR, sarYR, frR, cbXauR, goldYR, brR, wtiR, cbBtcR, btcYR] =
+  const [frR, oerR, cbXauR, goldYR, brR, wtiR, cbBtcR, btcYR] =
     await Promise.allSettled([
-      fetchYahoo('USDEGP=X', 'usd',  'yahoo', 2),
-      fetchYahoo('SAREGP=X', 'sar',  'yahoo', 4),
       fetchFloatRates(),
+      fetchOpenER(),
       fetchCoinbase('XAU-USD', 'gold', 'coinbase', 2),
       fetchYahoo('GC=F',     'gold',  'yahoo',   2),
       fetchYahoo('BZ=F',     'crude', 'brent',   2),
@@ -446,9 +472,8 @@ async function refresh() {
     ]);
 
   // ── Error states ────────────────────────────────────────────────────────────
-  if (usdYR.status  === 'rejected') setEr('usd', 'yahoo', 'Unavailable');
-  if (sarYR.status  === 'rejected') setEr('sar', 'yahoo', 'Unavailable');
   if (frR.status    === 'rejected') { setEr('usd', 'floatrates', 'Unavailable'); setEr('sar', 'floatrates', 'Unavailable'); }
+  if (oerR.status   === 'rejected') { setEr('usd', 'openex',     'Unavailable'); setEr('sar', 'openex',     'Unavailable'); }
   if (cbXauR.status === 'rejected') setEr('gold',  'coinbase', 'Unavailable');
   if (goldYR.status === 'rejected') setEr('gold',  'yahoo',    'Unavailable');
   if (brR.status    === 'rejected') setEr('crude', 'brent',    'Unavailable');
@@ -456,25 +481,33 @@ async function refresh() {
   if (cbBtcR.status === 'rejected') setEr('btc',   'coinbase', 'Unavailable');
   if (btcYR.status  === 'rejected') setEr('btc',   'yahoo',    'Unavailable');
 
-  // ── Arrows: FX — use Yahoo change% for both rows ────────────────────────────
-  const usdPct = usdYR.status === 'fulfilled' ? usdYR.value : null;
-  setArrow('usd', 'yahoo',      usdPct);
-  setArrow('usd', 'floatrates', usdPct);
+  // ── Arrows: FX — localStorage-based (compare current vs previous fetch) ─────
+  const usdVal = (frR.status === 'fulfilled' ? frR.value?.egp : null)
+              ?? (oerR.status === 'fulfilled' ? oerR.value?.egp : null);
+  const sarVal = (frR.status === 'fulfilled' ? frR.value?.sarEgp : null)
+              ?? (oerR.status === 'fulfilled' ? oerR.value?.sarEgp : null);
 
-  const sarPct = sarYR.status === 'fulfilled' ? sarYR.value : null;
-  setArrow('sar', 'yahoo',      sarPct);
-  setArrow('sar', 'floatrates', sarPct);
+  if (usdVal) {
+    const pct = fxArrow('bz_usd_egp', usdVal);
+    setArrow('usd', 'floatrates', pct);
+    setArrow('usd', 'openex',     pct);
+  }
+  if (sarVal) {
+    const pct = fxArrow('bz_sar_egp', sarVal);
+    setArrow('sar', 'floatrates', pct);
+    setArrow('sar', 'openex',     pct);
+  }
 
-  // ── Arrows: Gold — share Yahoo GC=F change% with both rows ─────────────────
+  // ── Arrows: Gold — Yahoo GC=F change% ──────────────────────────────────────
   const goldPct = goldYR.status === 'fulfilled' ? goldYR.value : null;
   setArrow('gold', 'coinbase', goldPct);
   setArrow('gold', 'yahoo',    goldPct);
 
-  // ── Arrows: Crude — each has its own change% ────────────────────────────────
+  // ── Arrows: Crude — each row has its own Yahoo change% ─────────────────────
   if (brR.status  === 'fulfilled') setArrow('crude', 'brent', brR.value);
   if (wtiR.status === 'fulfilled') setArrow('crude', 'wti',   wtiR.value);
 
-  // ── Arrows: BTC — share Yahoo BTC-USD change% with both rows ───────────────
+  // ── Arrows: BTC — Yahoo BTC-USD change% ────────────────────────────────────
   const btcPct = btcYR.status === 'fulfilled' ? btcYR.value : null;
   setArrow('btc', 'coinbase', btcPct);
   setArrow('btc', 'yahoo',    btcPct);
