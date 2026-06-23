@@ -405,15 +405,15 @@ async function fetchOpenER() {
   return { egp, sarEgp };
 }
 
-// FX arrow from localStorage — compare current vs previous fetch
-function fxArrow(storageKey, currentVal) {
+// Arrow from localStorage — compare current vs previous fetch (works for all assets)
+function lsArrow(storageKey, currentVal) {
   const prev = parseFloat(localStorage.getItem(storageKey) || '0');
   localStorage.setItem(storageKey, String(currentVal));
   if (!prev || isNaN(prev) || prev === currentVal) return null;
   return ((currentVal - prev) / prev) * 100;
 }
 
-// Coinbase spot price (no 24h change from this endpoint)
+// Coinbase spot price — returns price for arrow computation
 async function fetchCoinbase(symbol, aid, key, dec) {
   const r = await fetch(`https://api.coinbase.com/v2/prices/${symbol}/spot`, {
     signal: AbortSignal.timeout(10000),
@@ -423,7 +423,8 @@ async function fetchCoinbase(symbol, aid, key, dec) {
   const p = parseFloat(d?.data?.amount);
   if (!p || isNaN(p)) throw new Error('parse error');
   setP(aid, key, p, dec);
-  setT(aid, key, new Date());   // Coinbase is always fresh — no staleness check
+  setT(aid, key, new Date());
+  return p;
 }
 
 // Yahoo Finance — returns regularMarketChangePercent for arrow
@@ -444,8 +445,8 @@ async function fetchYahoo(symbol, aid, key, dec) {
         : new Date();
       if (typeof p === 'number' && p > 0) {
         setP(aid, key, p, dec);
-        setT(aid, key, ts, true);   // staleness check ON — exchange timestamps are precise
-        return pct;
+        setT(aid, key, ts, true);
+        return { p, pct };
       }
     } catch { /* try next */ }
   }
@@ -481,36 +482,28 @@ async function refresh() {
   if (cbBtcR.status === 'rejected') setEr('btc',   'coinbase', 'Unavailable');
   if (btcYR.status  === 'rejected') setEr('btc',   'yahoo',    'Unavailable');
 
-  // ── Arrows: FX — localStorage-based (compare current vs previous fetch) ─────
-  const usdVal = (frR.status === 'fulfilled' ? frR.value?.egp : null)
-              ?? (oerR.status === 'fulfilled' ? oerR.value?.egp : null);
-  const sarVal = (frR.status === 'fulfilled' ? frR.value?.sarEgp : null)
+  // ── Arrows: all assets use localStorage (current vs previous fetch) ──────────
+  // FX — single rate drives both rows
+  const usdVal = (frR.status  === 'fulfilled' ? frR.value?.egp    : null)
+              ?? (oerR.status === 'fulfilled' ? oerR.value?.egp   : null);
+  const sarVal = (frR.status  === 'fulfilled' ? frR.value?.sarEgp : null)
               ?? (oerR.status === 'fulfilled' ? oerR.value?.sarEgp : null);
+  if (usdVal) { const p = lsArrow('bz_usd', usdVal);    setArrow('usd', 'floatrates', p); setArrow('usd', 'openex', p); }
+  if (sarVal) { const p = lsArrow('bz_sar', sarVal);    setArrow('sar', 'floatrates', p); setArrow('sar', 'openex', p); }
 
-  if (usdVal) {
-    const pct = fxArrow('bz_usd_egp', usdVal);
-    setArrow('usd', 'floatrates', pct);
-    setArrow('usd', 'openex',     pct);
-  }
-  if (sarVal) {
-    const pct = fxArrow('bz_sar_egp', sarVal);
-    setArrow('sar', 'floatrates', pct);
-    setArrow('sar', 'openex',     pct);
-  }
+  // Gold — pick best available price; apply to both rows
+  const goldPrice = (goldYR.status  === 'fulfilled' ? goldYR.value?.p  : null)
+                 ?? (cbXauR.status  === 'fulfilled' ? cbXauR.value     : null);
+  if (goldPrice) { const p = lsArrow('bz_gold', goldPrice); setArrow('gold', 'coinbase', p); setArrow('gold', 'yahoo', p); }
 
-  // ── Arrows: Gold — Yahoo GC=F change% ──────────────────────────────────────
-  const goldPct = goldYR.status === 'fulfilled' ? goldYR.value : null;
-  setArrow('gold', 'coinbase', goldPct);
-  setArrow('gold', 'yahoo',    goldPct);
+  // Crude — each source tracked independently
+  if (brR.status  === 'fulfilled' && brR.value?.p  != null) setArrow('crude', 'brent', lsArrow('bz_brent', brR.value.p));
+  if (wtiR.status === 'fulfilled' && wtiR.value?.p != null) setArrow('crude', 'wti',   lsArrow('bz_wti',   wtiR.value.p));
 
-  // ── Arrows: Crude — each row has its own Yahoo change% ─────────────────────
-  if (brR.status  === 'fulfilled') setArrow('crude', 'brent', brR.value);
-  if (wtiR.status === 'fulfilled') setArrow('crude', 'wti',   wtiR.value);
-
-  // ── Arrows: BTC — Yahoo BTC-USD change% ────────────────────────────────────
-  const btcPct = btcYR.status === 'fulfilled' ? btcYR.value : null;
-  setArrow('btc', 'coinbase', btcPct);
-  setArrow('btc', 'yahoo',    btcPct);
+  // BTC — pick best available price; apply to both rows
+  const btcPrice = (btcYR.status  === 'fulfilled' ? btcYR.value?.p  : null)
+                ?? (cbBtcR.status === 'fulfilled' ? cbBtcR.value    : null);
+  if (btcPrice) { const p = lsArrow('bz_btc', btcPrice); setArrow('btc', 'coinbase', p); setArrow('btc', 'yahoo', p); }
 
   // ── Header timestamp (GMT+3) ────────────────────────────────────────────────
   const now = new Date();
