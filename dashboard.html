@@ -405,15 +405,15 @@ async function fetchOpenER() {
   return { egp, sarEgp };
 }
 
-// Arrow from localStorage — compare current vs previous fetch (works for all assets)
-function lsArrow(storageKey, currentVal) {
+// Shared localStorage arrow helper — used by all fetchers
+function localArrow(storageKey, currentVal) {
   const prev = parseFloat(localStorage.getItem(storageKey) || '0');
   localStorage.setItem(storageKey, String(currentVal));
   if (!prev || isNaN(prev) || prev === currentVal) return null;
   return ((currentVal - prev) / prev) * 100;
 }
 
-// Coinbase spot price — returns price for arrow computation
+// Coinbase spot price — returns localStorage-based change%
 async function fetchCoinbase(symbol, aid, key, dec) {
   const r = await fetch(`https://api.coinbase.com/v2/prices/${symbol}/spot`, {
     signal: AbortSignal.timeout(10000),
@@ -424,10 +424,10 @@ async function fetchCoinbase(symbol, aid, key, dec) {
   if (!p || isNaN(p)) throw new Error('parse error');
   setP(aid, key, p, dec);
   setT(aid, key, new Date());
-  return p;
+  return localArrow(`bz-${aid}-${key}`, p);
 }
 
-// Yahoo Finance — returns regularMarketChangePercent for arrow
+// Yahoo Finance — returns localStorage-based change% (ignores regularMarketChangePercent)
 async function fetchYahoo(symbol, aid, key, dec) {
   const enc   = encodeURIComponent(symbol);
   const base  = `https://query1.finance.yahoo.com/v8/finance/chart/${enc}?interval=1m&range=1d`;
@@ -439,14 +439,13 @@ async function fetchYahoo(symbol, aid, key, dec) {
       const d    = await r.json();
       const meta = d?.chart?.result?.[0]?.meta;
       const p    = meta?.regularMarketPrice;
-      const pct  = meta?.regularMarketChangePercent ?? null;
       const ts   = meta?.regularMarketTime
         ? new Date(meta.regularMarketTime * 1000)
         : new Date();
       if (typeof p === 'number' && p > 0) {
         setP(aid, key, p, dec);
         setT(aid, key, ts, true);
-        return { p, pct };
+        return localArrow(`bz-${aid}-${key}`, p);
       }
     } catch { /* try next */ }
   }
@@ -482,28 +481,22 @@ async function refresh() {
   if (cbBtcR.status === 'rejected') setEr('btc',   'coinbase', 'Unavailable');
   if (btcYR.status  === 'rejected') setEr('btc',   'yahoo',    'Unavailable');
 
-  // ── Arrows: all assets use localStorage (current vs previous fetch) ──────────
-  // FX — single rate drives both rows
-  const usdVal = (frR.status  === 'fulfilled' ? frR.value?.egp    : null)
-              ?? (oerR.status === 'fulfilled' ? oerR.value?.egp   : null);
-  const sarVal = (frR.status  === 'fulfilled' ? frR.value?.sarEgp : null)
-              ?? (oerR.status === 'fulfilled' ? oerR.value?.sarEgp : null);
-  if (usdVal) { const p = lsArrow('bz_usd', usdVal);    setArrow('usd', 'floatrates', p); setArrow('usd', 'openex', p); }
-  if (sarVal) { const p = lsArrow('bz_sar', sarVal);    setArrow('sar', 'floatrates', p); setArrow('sar', 'openex', p); }
+  // ── Arrows — pct returned directly by each fetcher ──────────────────────────
+  // FX: both sources share the same localStorage-derived pct (prefer FloatRates)
+  const usdPct = (frR.status  === 'fulfilled' ? localArrow('bz-usd-floatrates', frR.value?.egp)    : null)
+              ?? (oerR.status === 'fulfilled' ? localArrow('bz-usd-openex',     oerR.value?.egp)   : null);
+  const sarPct = (frR.status  === 'fulfilled' ? localArrow('bz-sar-floatrates', frR.value?.sarEgp) : null)
+              ?? (oerR.status === 'fulfilled' ? localArrow('bz-sar-openex',     oerR.value?.sarEgp): null);
+  setArrow('usd', 'floatrates', usdPct); setArrow('usd', 'openex', usdPct);
+  setArrow('sar', 'floatrates', sarPct); setArrow('sar', 'openex', sarPct);
 
-  // Gold — pick best available price; apply to both rows
-  const goldPrice = (goldYR.status  === 'fulfilled' ? goldYR.value?.p  : null)
-                 ?? (cbXauR.status  === 'fulfilled' ? cbXauR.value     : null);
-  if (goldPrice) { const p = lsArrow('bz_gold', goldPrice); setArrow('gold', 'coinbase', p); setArrow('gold', 'yahoo', p); }
-
-  // Crude — each source tracked independently
-  if (brR.status  === 'fulfilled' && brR.value?.p  != null) setArrow('crude', 'brent', lsArrow('bz_brent', brR.value.p));
-  if (wtiR.status === 'fulfilled' && wtiR.value?.p != null) setArrow('crude', 'wti',   lsArrow('bz_wti',   wtiR.value.p));
-
-  // BTC — pick best available price; apply to both rows
-  const btcPrice = (btcYR.status  === 'fulfilled' ? btcYR.value?.p  : null)
-                ?? (cbBtcR.status === 'fulfilled' ? cbBtcR.value    : null);
-  if (btcPrice) { const p = lsArrow('bz_btc', btcPrice); setArrow('btc', 'coinbase', p); setArrow('btc', 'yahoo', p); }
+  // Gold, Crude, BTC: pct already computed inside fetchCoinbase/fetchYahoo
+  if (cbXauR.status === 'fulfilled') setArrow('gold',  'coinbase', cbXauR.value);
+  if (goldYR.status === 'fulfilled') setArrow('gold',  'yahoo',    goldYR.value);
+  if (brR.status    === 'fulfilled') setArrow('crude', 'brent',    brR.value);
+  if (wtiR.status   === 'fulfilled') setArrow('crude', 'wti',      wtiR.value);
+  if (cbBtcR.status === 'fulfilled') setArrow('btc',   'coinbase', cbBtcR.value);
+  if (btcYR.status  === 'fulfilled') setArrow('btc',   'yahoo',    btcYR.value);
 
   // ── Header timestamp (GMT+3) ────────────────────────────────────────────────
   const now = new Date();
