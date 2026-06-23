@@ -152,7 +152,7 @@
       50%       { opacity: 1; }
     }
 
-    .rrow-arrow { font-size: 12px; font-weight: 700; line-height: 1; }
+    .rrow-arrow { font-size: 15px; font-weight: 900; line-height: 1; }
     .rrow-arrow.up   { color: var(--green); }
     .rrow-arrow.down { color: var(--red); }
 
@@ -341,9 +341,9 @@ function setArrow(aid, key, pct) {
   const el = document.getElementById(`arr-${aid}-${key}`);
   if (!el || pct === null || pct === undefined || isNaN(pct)) return;
   const abs = Math.abs(pct);
-  if (abs < 1) { el.textContent = ''; el.className = 'rrow-arrow'; return; }
+  if (abs < 0.001) { el.textContent = ''; el.className = 'rrow-arrow'; return; }
   const up  = pct > 0;
-  const big = abs >= 5;
+  const big = abs >= 2;
   el.textContent = big ? (up ? '▲▲' : '▼▼') : (up ? '▲' : '▼');
   el.className   = 'rrow-arrow ' + (up ? 'up' : 'down');
 }
@@ -409,7 +409,7 @@ async function fetchOpenER() {
 function fxArrow(storageKey, currentVal) {
   const prev = parseFloat(localStorage.getItem(storageKey) || '0');
   localStorage.setItem(storageKey, String(currentVal));
-  if (!prev || isNaN(prev)) return null;
+  if (!prev || isNaN(prev) || prev === currentVal) return null;
   return ((currentVal - prev) / prev) * 100;
 }
 
