@@ -1,0 +1,11 @@
+[Unit]
+Description=Buzzer Pi Health Check
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/buzzer/pi
+ExecStart=/usr/bin/python3 /home/pi/buzzer/pi/health.py
+StandardOutput=journal
+StandardError=journal

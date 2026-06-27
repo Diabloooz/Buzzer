@@ -1,0 +1,10 @@
+[Unit]
+Description=Buzzer Pi Daily Health Summary
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/buzzer/pi
+ExecStart=/usr/bin/python3 /home/pi/buzzer/pi/daily_summary.py
+StandardOutput=journal
+StandardError=journal

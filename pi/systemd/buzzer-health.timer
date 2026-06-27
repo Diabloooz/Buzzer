@@ -1,0 +1,12 @@
+[Unit]
+Description=Buzzer Pi Health Check -- every 5 minutes
+Requires=buzzer-health.service
+
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=5min
+AccuracySec=10s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -18,7 +18,8 @@ DATA_FILE  = BASE_DIR / "data.json"
 LOG_FILE   = BASE_DIR / "fetch.log"
 DASH_FILE  = BASE_DIR / "dashboard" / "dashboard.html"
 CTRL_FILE  = BASE_DIR / "dashboard" / "control.html"
-FETCH_SCRIPT = BASE_DIR / "fetch.py"
+FETCH_SCRIPT   = BASE_DIR / "fetch.py"
+HEALTH_STATE   = BASE_DIR / "health_state.json"
 PORT       = 8080
 
 
@@ -49,6 +50,75 @@ def data_status():
     except Exception as e:
         return {"ok": False, "error": str(e), "age_seconds": None}
 
+
+
+HEALTH_SERVICES = ["buzzer-server", "buzzer-fetch.timer", "buzzer-gold.timer"]
+
+
+def health_data():
+    def cpu_temp():
+        try:
+            raw = Path("/sys/class/thermal/thermal_zone0/temp").read_text().strip()
+            return round(int(raw) / 1000, 1)
+        except Exception:
+            return None
+
+    def ram_pct():
+        try:
+            info = {}
+            for line in Path("/proc/meminfo").read_text().splitlines():
+                k, _, v = line.partition(":")
+                info[k.strip()] = int(v.strip().split()[0])
+            total = info["MemTotal"]
+            available = info["MemAvailable"]
+            return round((total - available) / total * 100, 1)
+        except Exception:
+            return None
+
+    def disk_pct():
+        try:
+            out = subprocess.check_output(["df", "/", "--output=pcent"], text=True)
+            return float(out.splitlines()[1].strip().rstrip("%"))
+        except Exception:
+            return None
+
+    def svc_statuses():
+        result = {}
+        for svc in HEALTH_SERVICES:
+            try:
+                r = subprocess.run(["systemctl", "is-active", svc],
+                                   capture_output=True, text=True)
+                result[svc] = r.stdout.strip()
+            except Exception:
+                result[svc] = "unknown"
+        return result
+
+    temp = cpu_temp()
+    ram  = ram_pct()
+    disk = disk_pct()
+    svcs = svc_statuses()
+
+    def status(val, threshold):
+        if val is None: return "unknown"
+        if val < threshold * 0.9: return "ok"
+        if val < threshold: return "warn"
+        return "alert"
+
+    last_checked = None
+    if HEALTH_STATE.exists():
+        try:
+            hs = json.loads(HEALTH_STATE.read_text())
+            last_checked = hs.get("last_checked")
+        except Exception:
+            pass
+
+    return {
+        "checked_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "cpu_temp":   {"value": temp,  "threshold": 70,  "status": status(temp, 70)},
+        "ram_pct":    {"value": ram,   "threshold": 85,  "status": status(ram,  85)},
+        "disk_pct":   {"value": disk,  "threshold": 80,  "status": status(disk, 80)},
+        "services":   {svc: {"status": st, "ok": st == "active"} for svc, st in svcs.items()},
+    }
 
 class Handler(BaseHTTPRequestHandler):
 
@@ -85,6 +155,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, "application/json", DATA_FILE.read_text())
             else:
                 self.send(404, "application/json", '{"error":"no data yet"}')
+
+        elif path == "/health":
+            self.send(200, "application/json", json.dumps(health_data()))
 
         elif path == "/logs":
             self.send(200, "text/plain; charset=utf-8", read_tail(LOG_FILE, 50))

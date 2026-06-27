@@ -207,6 +207,40 @@
       text-decoration: none;
     }
     #ctrl-link:hover { color: var(--blue); }
+
+    /* Pi Health panel */
+    .health-panel {
+      width: 100%;
+      max-width: 720px;
+      background: var(--card);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .health-rows { padding: 6px 0; }
+    .health-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 13px;
+      border-bottom: 1px solid var(--divider);
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+    }
+    .health-row:last-child { border-bottom: none; }
+    .health-row-left { display: flex; align-items: center; gap: 8px; }
+    .health-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0; background: #ccc;
+    }
+    .health-dot.ok      { background: var(--green); }
+    .health-dot.warn    { background: var(--amber); }
+    .health-dot.alert   { background: var(--red); }
+    .health-dot.unknown { background: #ccc; }
+    .health-label { font-weight: 600; letter-spacing: 0.5px; font-size: 11px; text-transform: uppercase; }
+    .health-val   { font-size: 13px; color: var(--text); }
+    .health-checked { font-size: 10px; color: var(--sub); font-family: 'Courier New', monospace; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
@@ -218,6 +252,40 @@
 </div>
 
 <div class="grid" id="grid"></div>
+
+
+<div class="health-panel">
+  <div class="card-hdr">
+    <span class="card-name">Pi Health</span>
+    <span class="health-checked" id="health-ts">Loading...</span>
+  </div>
+  <div class="health-rows">
+    <div class="health-row">
+      <span class="health-row-left"><span class="health-dot" id="hd-cpu"></span><span class="health-label">CPU Temp</span></span>
+      <span class="health-val" id="h-cpu">...</span>
+    </div>
+    <div class="health-row">
+      <span class="health-row-left"><span class="health-dot" id="hd-ram"></span><span class="health-label">RAM</span></span>
+      <span class="health-val" id="h-ram">...</span>
+    </div>
+    <div class="health-row">
+      <span class="health-row-left"><span class="health-dot" id="hd-disk"></span><span class="health-label">Disk</span></span>
+      <span class="health-val" id="h-disk">...</span>
+    </div>
+    <div class="health-row">
+      <span class="health-row-left"><span class="health-dot" id="hd-server"></span><span class="health-label">buzzer-server</span></span>
+      <span class="health-val" id="hs-server">...</span>
+    </div>
+    <div class="health-row">
+      <span class="health-row-left"><span class="health-dot" id="hd-fetch"></span><span class="health-label">buzzer-fetch.timer</span></span>
+      <span class="health-val" id="hs-fetch">...</span>
+    </div>
+    <div class="health-row">
+      <span class="health-row-left"><span class="health-dot" id="hd-gold"></span><span class="health-label">buzzer-gold.timer</span></span>
+      <span class="health-val" id="hs-gold">...</span>
+    </div>
+  </div>
+</div>
 
 <div class="foot">
   <button id="rbtn">↻ Refresh</button>
@@ -345,6 +413,50 @@ document.getElementById('rbtn').addEventListener('click', refresh);
 refresh();
 // Auto-refresh every 5 minutes
 setInterval(refresh, 5 * 60 * 1000);
+
+async function refreshHealth() {
+  try {
+    const r = await fetch('/health', { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+
+    function setMetric(valId, dotId, metric) {
+      const el  = document.getElementById(valId);
+      const dot = document.getElementById(dotId);
+      if (el)  el.textContent  = metric && metric.value !== null ? metric.value + (valId.includes('cpu') ? 'C' : '%') : '—';
+      if (dot) dot.className   = 'health-dot ' + (metric ? metric.status : 'unknown');
+    }
+    setMetric('h-cpu',  'hd-cpu',  d.cpu_temp);
+    setMetric('h-ram',  'hd-ram',  d.ram_pct);
+    setMetric('h-disk', 'hd-disk', d.disk_pct);
+
+    const svcMap = [
+      ['buzzer-server',      'hs-server', 'hd-server'],
+      ['buzzer-fetch.timer', 'hs-fetch',  'hd-fetch'],
+      ['buzzer-gold.timer',  'hs-gold',   'hd-gold'],
+    ];
+    for (const [svc, valId, dotId] of svcMap) {
+      const info = d.services && d.services[svc];
+      const el  = document.getElementById(valId);
+      const dot = document.getElementById(dotId);
+      if (el)  el.textContent = info ? info.status : 'unknown';
+      if (dot) dot.className  = 'health-dot ' + (info && info.ok ? 'ok' : 'alert');
+    }
+
+    const ts = document.getElementById('health-ts');
+    if (ts) ts.textContent = 'Checked ' + new Date(d.checked_at).toLocaleTimeString('en-US', {
+      timeZone: 'Asia/Riyadh', hour12: false, hour: '2-digit', minute: '2-digit',
+    }) + ' GMT+3';
+
+  } catch(e) {
+    const ts = document.getElementById('health-ts');
+    if (ts) ts.textContent = 'Cannot reach Pi';
+  }
+}
+
+refreshHealth();
+setInterval(refreshHealth, 60 * 60 * 1000);
+
 </script>
 
 </body>
