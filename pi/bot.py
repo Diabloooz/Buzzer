@@ -173,7 +173,7 @@ def health_snapshot():
     ]
     for svc, status in svcs.items():
         lines.append(f"{svc_circle(status)}  {svc}: {status}")
-    lines += ["", f"⏱ Last fetch: {last_fetch}"]
+    lines += ["", f"⏱ Market data: {last_fetch}"]
     return "\n".join(lines)
 
 
