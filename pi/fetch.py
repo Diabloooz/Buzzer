@@ -123,35 +123,33 @@ def fetch_gold():
 
 # ── Modes ─────────────────────────────────────────────────────────────────────
 def run_rates():
-    """Fetch FX + crude. Preserve existing gold data."""
+    """Fetch FX + crude. All 3 rates must succeed before data.json is touched."""
     existing = load_existing()
-    errors = []
 
     usd_egp = sar_egp = brent = None
+    failed = []
 
     try:
         usd_egp, sar_egp = fetch_floatrates()
     except Exception as e:
-        errors.append(f"FloatRates: {e}")
         log.error(f"FloatRates FAILED: {e}")
+        failed.append("usd_egp/sar_egp")
 
     try:
         brent = fetch_brent()
     except Exception as e:
-        errors.append(f"Brent: {e}")
         log.error(f"Brent FAILED: {e}")
+        failed.append("brent_usd")
 
-    # FX rates are critical — abort if missing
-    if usd_egp is None:
-        log.error("FX fetch failed — data.json NOT updated")
+    if failed:
+        log.error(f"Fetch incomplete — missing: {', '.join(failed)} — data.json NOT updated")
         sys.exit(1)
 
     data = {
         "fetched_at":      now_iso(),
         "usd_egp":         round(usd_egp, 4),
         "sar_egp":         round(sar_egp, 4),
-        # Crude: use new value if fetched, else preserve last known
-        "brent_usd":       round(brent, 2) if brent is not None else existing.get("brent_usd"),
+        "brent_usd":       round(brent, 2),
         # Preserve gold from last successful gold fetch
         "xau_usd":         existing.get("xau_usd"),
         "gold_fetched_at": existing.get("gold_fetched_at"),

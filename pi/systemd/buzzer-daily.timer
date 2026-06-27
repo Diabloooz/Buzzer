@@ -1,0 +1,11 @@
+[Unit]
+Description=Buzzer Pi Daily Health Summary -- 21:00 AST (18:00 UTC)
+Requires=buzzer-daily.service
+
+[Timer]
+OnCalendar=*-*-* 18:00:00 UTC
+AccuracySec=60s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
